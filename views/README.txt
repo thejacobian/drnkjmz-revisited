@@ -1,0 +1,1 @@
+The frontend is supplied by React so no EJS or Partials.
