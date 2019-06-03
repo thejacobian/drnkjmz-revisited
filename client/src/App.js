@@ -19,7 +19,6 @@ import EditCocktail from "./EditCocktail/EditCocktail";
 import NewCocktail from "./NewCocktail/NewCocktail";
 import logo from "./mstile-150x150.png";
 import "./App.css";
-import { isNullOrUndefined } from "util";
 // import SpotifyPlayer from "react-spotify-player";
 // import Script from "react-load-script"
 import SpotifyWebApi from "spotify-web-api-js";
@@ -144,24 +143,21 @@ class App extends Component {
         token: _token
       });
 
-      this.getClientIPAddress();
-
       // set spotifyApi to our access token to be able to make requests
-      
       await spotifyApi.setAccessToken(_token);
 
-      // call getCurrentlyPlaying API request if token is good
-      await this.getCurrentlyPlaying();
-
-      // // get the user deviceIds
-      // await this.getDeviceIds();
+      // get the user deviceIds
+      await this.getDeviceIds();
 
       if (this.state.allDeviceIds && !this.state.deviceId) {
         await this.setState({
           deviceId: await this.state.allDeviceIds[0].id,
-          deviceName: await this.state.allDeviceIds[0]
+          deviceName: await this.state.allDeviceIds[0].name
         });
       }
+
+      // call getCurrentlyPlaying API request if token is good
+      await this.getCurrentlyPlaying();
 
       // if (!this.state.deviceName && this.state.allDeviceIds) {
       //   await this.setDeviceName();
@@ -213,7 +209,7 @@ class App extends Component {
     if (this.state.artistResults)
       cocktailGenres = this.state.artistResults[0];
     else {
-      cocktailGenres = "rock";
+      cocktailGenres = {"genres":"rock"};
     }
 
     const response = await fetch(`${process.env.REACT_APP_BACKEND_ADDRESS}/api/v1/cocktails/search`, {
@@ -225,12 +221,12 @@ class App extends Component {
       }
     });
 
-    // let parsedResponse = {};
-    // try {
-    const parsedResponse = await response.json();
-    // } catch (err) {
-    //   console.log(`Unable to access nowPlaying/device data onDidMount: ${err}`);
-    // }
+    let parsedResponse = {};
+    try {
+      parsedResponse = await response.json();
+    } catch (err) {
+      console.log(`Unable to access nowPlaying/device data onDidMount: ${err}`);
+    }
 
     if(parsedResponse.status === 200){
 
@@ -345,7 +341,7 @@ class App extends Component {
     await this.getCurrentlyPlaying();
 
     if (uri === "" && this.state.nowPlaying.artists[0].name) {
-      await spotifyApi.play({"deviceId": this.state.deviceId})
+      await spotifyApi.play({"device_id": this.state.deviceId})
         .then(async (response) => {
           await this.getCurrentlyPlaying();
           await this.setState({
@@ -355,7 +351,7 @@ class App extends Component {
           console.log(`${err} in the spotify playTrack ext API lib call`);
         });
     } else if (uri !== "" && this.state.artistResults[0]) {
-      await spotifyApi.play({"deviceId": this.state.deviceId, "context_uri": uri})
+      await spotifyApi.play({"device_id": this.state.deviceId, "context_uri": uri})
       .then(async (response) => {
         await this.getCurrentlyPlaying();
         await setTimeout(await this.getCurrentlyPlaying, 200);
@@ -366,7 +362,7 @@ class App extends Component {
         console.log(`${err} in the spotify playTrack ext API lib call`);
       });
     } else {
-      await spotifyApi.play({"deviceId": this.state.deviceId, "context_uri": "spotify:album:2aEfwug3iZ4bivziB14C1F"})
+      await spotifyApi.play({"device_id": this.state.deviceId, "context_uri": "spotify:album:2aEfwug3iZ4bivziB14C1F"})
         .then(async (response) => {
           await this.getCurrentlyPlaying();
           await setTimeout(await this.getCurrentlyPlaying, 200);
@@ -562,7 +558,7 @@ class App extends Component {
 
           {this.state.token && this.state.cocktail && (
             <div>
-              <p className="normal-text">A perfect cocktail pairing for {!isNullOrUndefined(this.state.artistResults[0]) ? this.state.artistResults[0].name : 'the Artist'} has been recommended below...</p>
+              <p className="normal-text">A perfect cocktail pairing for {this.state.artistResults !== null ? this.state.artistResults[0].name : 'the Artist'} has been recommended below...</p>
               <CocktailComp
                 nowPlaying={this.state.nowPlaying}
                 cocktailDirections={this.state.cocktail.data.directions}
