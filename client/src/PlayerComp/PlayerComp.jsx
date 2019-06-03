@@ -7,9 +7,9 @@ const PlayerComp = (props) => {
       backgroundImage:`url(${props.nowPlaying.album.images[0].url})`,
   };
 
-  // const progressBarStyles = {
-  //   width: (props.progress_ms * 100 / props.nowPlaying.duration_ms) + '%'
-  // };
+  const progressBarStyles = {
+    width: (props.progress_ms * 100 / props.nowPlaying.duration_ms) + '%'
+  };
 
   return (
     <div className="App">
@@ -23,14 +23,12 @@ const PlayerComp = (props) => {
             Artist: {props.nowPlaying.artists[0].name}
           </div><br/>
           <div className="now-playing__status">
-            Status: {props.is_playing ? `Playing` : `Paused`}
+            Status: {props.isPlaying ? `Playing` : `Paused`}
+            {props.currDeviceName ? ` on ${props.currDeviceName}` : ''}
           </div>
-          {/* <div className="now-playing__status">
-            Status: {props.is_playing ? `on ${props.currDeviceId}` : `on ${props.currDeviceId}`}
-          </div> */}
-          {/* <div className="progress">
+          <div className="progress">
             <div className="progress__bar" style={progressBarStyles} />
-          </div> */}
+          </div>
         </div>
         <div className="now-playing__controls">
           {/* <button className="btn btn--loginApp-link" onClick={props.pauseTrack.bind(null)}>PAUSE</button><br/><br/><br/>

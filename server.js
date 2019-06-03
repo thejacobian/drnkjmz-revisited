@@ -1,7 +1,3 @@
-/* eslint-disable no-path-concat */
-/* eslint-disable prefer-template */
-/* eslint-disable no-prototype-builtins */
-/* eslint-disable no-restricted-syntax */
 // require express packages
 const express = require('express');
 
@@ -23,8 +19,8 @@ app.use(cors({
   optionsSuccessStatus: 200,
 }));
 
-// Use 'path' for Big Repo deployment
-app.use(express.static(path.join(__dirname, 'client/build')));
+// // Use 'path' for Big Repo deployment
+// app.use(express.static(path.join(__dirname, 'client/build')));
 
 // require mongo db connection
 require('./db/db');
@@ -58,18 +54,19 @@ app.use(bodyParser.json());
 // });
 
 // // require the controllers
-// const userController = require('./controllers/userController');
+const userController = require('./controllers/userController');
 const cocktailController = require('./controllers/cocktailController');
 // const authController  = require('./controllers/authController');
 
 // use the controllers
+app.use('/api/v1/users', userController);
 app.use('/api/v1/cocktails', cocktailController);
-// app.use('/auth', authController);
 
-// Handles any requests that don't match the ones above
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname + '/client/build/index.html'));
-});
+
+// // Handles any requests that don't match the ones above
+// app.get('*', (req, res) => {
+//   res.sendFile(path.join(`${__dirname}/client/build/index.html`));
+// });
 
 app.listen(process.env.PORT || 27018, () => {
   console.log(`Listening on port: ${process.env.PORT}`);

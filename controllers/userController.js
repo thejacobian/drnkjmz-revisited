@@ -2,6 +2,7 @@
 /* eslint-disable no-underscore-dangle */
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const fetch = require('node-fetch');
 
 const router = express.Router();
 const User = require('../models/user');
@@ -11,15 +12,52 @@ const User = require('../models/user');
 const requireLogin = require('../middleware/requireLogin');
 const showMessagesAndUsername = require('../middleware/showSessionMessages');
 
-// INDEX route
-router.get('/', requireLogin, async (req, res) => {
+let ipAddress = '';
+let city = '';
+let state = '';
+let countryCode = '';
+
+// adapted from Stack Overflow for basic geolocation detection
+const getClientLocationFromIP = async () => {
   try {
-    const thisUsersDbId = req.session.usersDbId;
-    const users = await User.find({});
-    res.render('users/index.ejs', {
-      users,
-      currentUser: thisUsersDbId,
-    });
+    const request = `https://json.geoiplookup.io/${ipAddress}`;
+    const result = await fetch(request);
+    const parsedResult = await result.json();
+    console.log(parsedResult);
+    return parsedResult.country;
+  } catch (err) {
+    console.log(`${err} in the geoiplookup.io ext API call`);
+    return null;
+  }
+};
+
+// INDEX route
+router.get('/', /*requireLogin,*/ async (req, res) => {
+  try {
+
+    // get the User's IP address from the HTTP request X-Forwarded-For header (from Stack Overflow)
+    ipAddress = req.headers['x-forwarded-for']
+      || req.connection.remoteAddress
+      || req.socket.remoteAddress
+      || (req.connection.socket ? req.connection.socket.remoteAddress : null);
+    if (ipAddress === '::1') {
+      ipAddress = '63.149.97.94';
+      city = 'Denver';
+      state = 'CO';
+      countryCode = 'US';
+    } else {
+      getClientLocationFromIP();
+    }
+
+    console.log(`INDEX route hit: ${ipAddress}, ${city}, ${state}, ${countryCode}`);
+    res.send(`INDEX route hit: ${ipAddress}, ${city}, ${state}, ${countryCode}`);
+    
+    // const thisUsersDbId = req.session.usersDbId;
+    // const users = await User.find({});
+    // res.render('users/index.ejs', {
+    //   users,
+    //   currentUser: thisUsersDbId,
+    // });
   } catch (err) {
     res.send(err);
   }
@@ -27,6 +65,15 @@ router.get('/', requireLogin, async (req, res) => {
 
 // SHOW route
 router.get('/:id', requireLogin, async (req, res) => {
+  // get the User's IP address from the HTTP request X-Forwarded-For header (from Stack Overflow)
+  ipAddress = req.headers['x-forwarded-for']
+    || req.connection.remoteAddress
+    || req.socket.remoteAddress
+    || (req.connection.socket ? req.connection.socket.remoteAddress : null);
+  if (ipAddress) {
+    getClientLocationFromIP();
+  }
+
   try {
     const thisUsersDbId = req.session.usersDbId;
     if (req.params.id === thisUsersDbId) {
@@ -71,6 +118,15 @@ router.get('/:id', requireLogin, async (req, res) => {
 
 // UPDATE route
 router.put('/:id', requireLogin, async (req, res) => {
+  // get the User's IP address from the HTTP request X-Forwarded-For header (from Stack Overflow)
+  ipAddress = req.headers['x-forwarded-for']
+    || req.connection.remoteAddress
+    || req.socket.remoteAddress
+    || (req.connection.socket ? req.connection.socket.remoteAddress : null);
+  if (ipAddress) {
+    getClientLocationFromIP();
+  }
+
   try {
     const thisUsersDbId = req.session.usersDbId;
     if (req.params.id === thisUsersDbId) {
@@ -89,6 +145,15 @@ router.put('/:id', requireLogin, async (req, res) => {
 
 // DELETE route
 router.delete('/:id', requireLogin, async (req, res) => {
+  // get the User's IP address from the HTTP request X-Forwarded-For header (from Stack Overflow)
+  ipAddress = req.headers['x-forwarded-for']
+    || req.connection.remoteAddress
+    || req.socket.remoteAddress
+    || (req.connection.socket ? req.connection.socket.remoteAddress : null);
+  if (ipAddress) {
+    getClientLocationFromIP();
+  }
+
   try {
     const thisUsersDbId = req.session.usersDbId;
     if (req.params.id === thisUsersDbId) {
@@ -116,6 +181,16 @@ router.delete('/:id', requireLogin, async (req, res) => {
 // CREATE/REGISTER route
 router.post('/register', showMessagesAndUsername, async (req, res) => {
   try {
+
+    // get the User's IP address from the HTTP request X-Forwarded-For header (from Stack Overflow)
+    ipAddress = req.headers['x-forwarded-for']
+      || req.connection.remoteAddress
+      || req.socket.remoteAddress
+      || (req.connection.socket ? req.connection.socket.remoteAddress : null);
+    if (ipAddress) {
+      getClientLocationFromIP();
+    }
+
     const foundUser = await User.findOne({ username: req.body.username });
     if (!foundUser) {
       const { password } = req.body;
@@ -141,16 +216,16 @@ router.post('/register', showMessagesAndUsername, async (req, res) => {
   }
 });
 
-// helper function for login to show session messages
-const renderLoginPage = async (req, res) => {
-  const thisUsersDbId = req.session.usersDbId;
-  // const allCocktails = await Cocktail.find({}).sort([['count', -1]]);
-  res.render('auth/login.ejs', {
-    currentUser: thisUsersDbId,
-    // cocktails: allCocktails,
-    message: req.session.message,
-  });
-};
+// // helper function for login to show session messages
+// const renderLoginPage = async (req, res) => {
+//   const thisUsersDbId = req.session.usersDbId;
+//   // const allCocktails = await Cocktail.find({}).sort([['count', -1]]);
+//   res.render('auth/login.ejs', {
+//     currentUser: thisUsersDbId,
+//     // cocktails: allCocktails,
+//     message: req.session.message,
+//   });
+// };
 
 // // LOGIN GET route
 // router.get('/login', showMessagesAndUsername, async (req, res) => {
@@ -163,6 +238,15 @@ const renderLoginPage = async (req, res) => {
 
 // LOGIN POST route
 router.post('/login', showMessagesAndUsername, async (req, res) => {
+  // get the User's IP address from the HTTP request X-Forwarded-For header (from Stack Overflow)
+  ipAddress = req.headers['x-forwarded-for']
+    || req.connection.remoteAddress
+    || req.socket.remoteAddress
+    || (req.connection.socket ? req.connection.socket.remoteAddress : null);
+  if (ipAddress) {
+    getClientLocationFromIP();
+  }
+
   try {
     const foundUser = await User.findOne({ username: req.body.username });
     if (foundUser) {
