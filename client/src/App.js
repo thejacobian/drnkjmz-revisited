@@ -94,7 +94,7 @@ class App extends Component {
         artists: [{ name: "" }],
         duration_ms:0,
       },
-      isPlaying: "Playing",
+      isPlaying: true,
       progress_ms: 0,
       js: false,
       history: [],
@@ -116,6 +116,12 @@ class App extends Component {
     // get the user deviceIds
     await this.getDeviceIds();
 
+    if (this.state.allDeviceIds && !this.state.deviceId) {
+      await this.setState({
+        deviceId: await this.state.allDeviceIds[0].id,
+      });
+    }
+
     let locDevice = await this.state.allDeviceIds.filter((aDevice) => aDevice.id === this.state.deviceId)
     await this.setState ({
       deviceName: await locDevice[0].name
@@ -127,7 +133,8 @@ class App extends Component {
     //     });
     //   }
     // });
-    console.log(this.state.deviceName, "deviceName");
+    
+    // console.log(this.state.deviceName, "deviceName");
   }
 
   // Once react page is loaded/mounted after redirect from spotify login,
@@ -146,29 +153,18 @@ class App extends Component {
       // set spotifyApi to our access token to be able to make requests
       await spotifyApi.setAccessToken(_token);
 
-      // get the user deviceIds
-      await this.getDeviceIds();
-
-      if (this.state.allDeviceIds && !this.state.deviceId) {
-        await this.setState({
-          deviceId: await this.state.allDeviceIds[0].id,
-          deviceName: await this.state.allDeviceIds[0].name
-        });
-      }
+      // get the user deviceName
+      await this.setDeviceName();
 
       // call getCurrentlyPlaying API request if token is good
       await this.getCurrentlyPlaying();
 
-      // if (!this.state.deviceName && this.state.allDeviceIds) {
-      //   await this.setDeviceName();
-      // }
-
-      if (this.state.deviceId && this.state.allDeviceIds && this.state.nowPlaying.artists) {
+      if (this.state.deviceId && this.state.deviceName && this.state.nowPlaying.artists) {
         // get initial cocktail for currentlyPlaying artist on page load.
         await this.handleSubmit(null, this.state.nowPlaying.artists[0].name);
 
         this.setState({
-          isPlaying: "Playing"
+          isPlaying: true,
         })
       }
     }
@@ -191,19 +187,7 @@ class App extends Component {
     }
   }
 
-  handleSubmit = async (e, formArtist) => {
-
-    await this.searchArtists(formArtist);
-
-    if (!this.state.artist || !this.state.artistResults[0]) {
-      await this.playTrack("");
-      document.getElementById('artistSearch').value = '';
-    } else {
-      await this.playTrack(this.state.artistResults[0].uri);
-    }
-
-    await this.getCurrentlyPlaying();
-
+  getNewCocktail = async (formArtist) => {
     // hack in case artistResults has not been found yet from Spotify API
     let cocktailGenres;
     if (this.state.artistResults)
@@ -229,7 +213,7 @@ class App extends Component {
     }
 
     if(parsedResponse.status === 200){
-
+  
       // set the cocktail.img with API call to cocktailsDB
       if (!parsedResponse.data.img) {
           parsedResponse.data.img = await this.findCocktailImage(parsedResponse.data.cId);
@@ -241,6 +225,28 @@ class App extends Component {
       });
     }
   }
+  
+  handleSubmit = async (e, formArtist) => {
+
+    await this.searchArtists(formArtist);
+
+    if (!this.state.artist || !this.state.artistResults[0]) {
+      await this.playTrack("");
+      document.getElementById('artistSearch').value = '';
+    } else {
+      await this.playTrack(this.state.artistResults[0].uri);
+    }
+
+    await this.getCurrentlyPlaying();
+
+    // if (formArtist = " ") {
+    //   formArtist  = this.state.nowPlaying.artists[0].name;
+    // }
+
+    console.log(formArtist, ': formArtist from handleSubmit');
+
+    await this.getNewCocktail(formArtist);
+  }
 
   // Make a call to the spotify ext API from getArtistResults
   searchArtists = async (searchTerm) => {
@@ -249,7 +255,7 @@ class App extends Component {
         await this.setState({
           artistResults: await response.artists.items,
           response: await response
-        })
+        });
       }).catch((err) => {
         console.log(`${err} in the spotify searchArtists ext API lib call`);
       }
@@ -260,6 +266,10 @@ class App extends Component {
   getArtistDetails = async (artistId) => {
     await spotifyApi.getArtist(artistId)
       .then(async (response) => {
+        await this.setState({
+          artistDetails: await response.artist,
+          response: await response
+        });
       }).catch((err) => {
         console.log(`${err} in the spotify getArtistDetails ext API lib call`);
       }
@@ -270,7 +280,10 @@ class App extends Component {
   getTrackFeatures = async () => {
     await spotifyApi.getAudioFeaturesForTrack(this.state.nowPlaying.id)
       .then(async (response) => {
-        // await setTimeout(await this.getCurrentlyPlaying, 200);
+        await this.setState({
+          trackFeatures: await response.track,
+          response: await response
+        });
       }).catch((err) => {
         console.log(`${err} in the spotify getTrackFeatures ext API lib call`);
       }
@@ -281,6 +294,8 @@ class App extends Component {
   previousTrack = async () => {
     await spotifyApi.skipToPrevious()
       .then(async (response) => {
+        // update setDeviceName for PlayerComp to current nowPlaying device
+        await this.setDeviceName();
         await setTimeout(await this.getCurrentlyPlaying, 200);
       }).catch((err) => {
         console.log(`${err} in the spotify previousTrack ext API lib call`);
@@ -292,6 +307,8 @@ class App extends Component {
    nextTrack = async () => {
     await spotifyApi.skipToNext()
       .then(async (response) => {
+        // update setDeviceName for PlayerComp to current nowPlaying device
+        await this.setDeviceName();
         await setTimeout(await this.getCurrentlyPlaying, 200);
       }).catch((err) => {
         console.log(`${err} in the spotify nextTrack ext API lib call`);
@@ -303,14 +320,18 @@ class App extends Component {
   pauseTrack = async () => {
     await spotifyApi.pause()
       .then(async (response) => {
+        // update setDeviceName for PlayerComp to current nowPlaying device
+        await this.setDeviceName();
         await this.getCurrentlyPlaying();
         await this.setState({
           isPlaying: false,
         });
       }).catch((err) => {
         console.log(`${err} in the spotify pauseTrack ext API lib call`);
+        clearInterval(this.interval);
       }
     );
+    clearInterval(this.interval);
   }
 
     // Make a call to the spotify ext API from getDeviceIds
@@ -328,9 +349,12 @@ class App extends Component {
   // Make a call to the spotify ext API from playTrack
   playTrack = async (uri) => {
 
-    if (!this.state.deviceId) {
-      await this.getDeviceIds();
-    }
+    // update setDeviceName for PlayerComp to current nowPlaying device
+    await this.setDeviceName();
+
+    // if (!this.state.deviceId) {
+    //   await this.getDeviceIds();
+    // }
 
     if (!this.state.deviceId && this.allDeviceIds) {
       await this.setState({
@@ -338,12 +362,9 @@ class App extends Component {
       });
     }
 
-    await this.getCurrentlyPlaying();
-
     if (uri === "" && this.state.nowPlaying.artists[0].name) {
       await spotifyApi.play({"device_id": this.state.deviceId})
         .then(async (response) => {
-          await this.getCurrentlyPlaying();
           await this.setState({
             isPlaying: true,
           });
@@ -353,8 +374,6 @@ class App extends Component {
     } else if (uri !== "" && this.state.artistResults[0]) {
       await spotifyApi.play({"device_id": this.state.deviceId, "context_uri": uri})
       .then(async (response) => {
-        await this.getCurrentlyPlaying();
-        await setTimeout(await this.getCurrentlyPlaying, 200);
         await this.setState({
           isPlaying: true,
         });
@@ -364,8 +383,6 @@ class App extends Component {
     } else {
       await spotifyApi.play({"device_id": this.state.deviceId, "context_uri": "spotify:album:2aEfwug3iZ4bivziB14C1F"})
         .then(async (response) => {
-          await this.getCurrentlyPlaying();
-          await setTimeout(await this.getCurrentlyPlaying, 200);
           await this.setState({
             isPlaying: true,
           });
@@ -374,18 +391,46 @@ class App extends Component {
         }
       );
     }
+
+    // sync with Spotify and getCurrentlyPlaying state
+    await this.getCurrentlyPlaying();
+    await setTimeout(await this.getCurrentlyPlaying, 200);
+  }
+
+  syncNewTrack = async () => {
+    // update setDeviceName for PlayerComp to current nowPlaying device
+    await this.setDeviceName();
+    // sync with Spotify and getCurrentlyPlaying state
+    await this.getCurrentlyPlaying();
+    console.log(this.state.nowPlaying.artists[0].name, ': nowPlaying.artist in syncNewTrack');
+    // sync with Spotify and get new cocktail state
+    await this.handleSubmit(null, this.state.nowPlaying.artists[0].name);
+  }
+
+  setTrackProgress = async () => {
+    await this.setState({
+      progress_ms: this.state.progress_ms + 250
+    });
+
+    if (this.state.progress_ms > this.state.nowPlaying.duration_ms) {
+      clearInterval(this.interval);
+      //update currentlyPlaying with new track
+      this.syncNewTrack();
+    }
   }
 
   // Make a call to the spotify ext API from getCurrentlyPlaying
   getCurrentlyPlaying = async () => {
+    clearInterval(this.interval);
+
     await spotifyApi.getMyCurrentPlaybackState()
       .then( async(response) => {
-        if (response.item.artists[0].name) {
+        if (response.item.artists) {
           await this.setState({
             response: await response,
             nowPlaying: await response.item,
             deviceId: await response.device.id,
-            isPlaying: await response.isPlaying,
+            isPlaying: await response.is_playing,
             progress_ms: await response.progress_ms, 
           });
         }
@@ -394,14 +439,19 @@ class App extends Component {
       }
     );
 
-    // update setDeviceName for PlayerComp to current nowPlaying device
-    await this.setDeviceName();
+    // start interval time to update the progress_bar in PlayerComp
+    this.interval = setInterval(await this.setTrackProgress, 250);
   }
 
   toggleJS = () => {
     this.setState(prevState => ({
       js: !prevState.js
     }));
+  }
+
+  componentWillUnmount() {
+    //clear the interval when unmounting the page to avoid memory leak
+    clearInterval(this.interval);
   }
 
   createCocktail = async (formData) => {

@@ -7,10 +7,14 @@ const PlayerComp = (props) => {
       backgroundImage:`url(${props.nowPlaying.album.images[0].url})`,
   };
 
-  const progressBarStyles = {
+  // const updateProgressBar = () => {
+
+  // }
+
+  let progressBarStyles = {
     width: (props.progress_ms * 100 / props.nowPlaying.duration_ms) + '%'
   };
-
+  
   return (
     <div className="App">
       <div className="main-wrapper">

@@ -170,17 +170,17 @@ body {
 
 /** Progress Bar **/
 
-/* .progress {
+.progress {
   border: 1px solid #eee;
   height: 6px;
   border-radius: 3px;
   overflow: hidden;
 }
 
-.progress__bar {
-  background-color: #eee;
-  height: 4px;
-} */
+.progress__bar {  
+  background-color: rgba(0,0,0,0.8);
+  height: 16px;
+}
 
 
 /** Navbar Styling **/
@@ -233,11 +233,11 @@ h3 {
   width: 45%;
 }
 
-.clearfix::after {
+/* .clearfix::after {
   content: "";
   clear: both;
   display: table;
-}
+} */
 
 /** Cocktail Admin Panel **/
 
