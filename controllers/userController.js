@@ -210,21 +210,27 @@ router.post('/register', showMessagesAndUsername, async (req, res) => {
     if (ipAddress) {
       geoData = await getClientLocationFromIP();
     }
+    if (ipAddress === '::1') {
+      geoData.ip = '63.149.97.94';
+      geoData.city = 'Denver';
+      geoData.district = 'CO';
+      geoData.postal_code = '80205';
+    }
 
-    const foundUser = await User.findOne({ sP_id: req.body.id });
+    const foundUser = await User.findOne({ sP_id: req.body.sP_id });
     if (!foundUser) {
       // const { password } = req.body;
       // const passwordHash = bcrypt.hashSync(password, bcrypt.genSaltSync(10));
       // userDbEntry.password = passwordHash;
-      const userDbEntry = req.body;
-
+      const dbUser = req.body;
       if (geoData) {
-        userDbEntry.city = geoData.city;
-        userDbEntry.state = geoData.district;
-        userDbEntry.postal_code = geoData.postal_code;
+        dbUser.ip = geoData.ip;
+        dbUser.city = geoData.city;
+        dbUser.state = geoData.district;
+        dbUser.postal_code = geoData.postal_code;
       }
 
-      const createdUser = await User.create(userDbEntry);
+      const createdUser = await User.create(dbUser);
       req.session.logged = true;
       req.session.usersDbId = createdUser._id;
       res.json({
@@ -235,11 +241,10 @@ router.post('/register', showMessagesAndUsername, async (req, res) => {
     } else {
       req.session.message = 'This username/id is already taken. Please try again.';
       console.log(req.session.message);
-      const thisUsersDbId = req.session.usersDbId;
       res.json({
         status: 500,
         loggedIn: false,
-        user: null
+        user: null,
       });
     }
   } catch (err) {
@@ -290,8 +295,8 @@ router.post('/login', showMessagesAndUsername, async (req, res) => {
         console.log(req.session, 'successful login');
         res.json({
           status: 200,
-          user: foundUser,
           loggedIn: true,
+          user: foundUser,
         });
       // } else {
       //   req.session.message = 'Incorrect username or password. Please try again.';
@@ -307,8 +312,8 @@ router.post('/login', showMessagesAndUsername, async (req, res) => {
       console.log(req.session.message);
       res.json({
         status: 500,
-        user: null,
         loggedIn: false,
+        user: null,
       });
     }
   } catch (err) {
@@ -351,7 +356,7 @@ router.post('/find', /*requireLogin,*/ async (req, res) => {
     console.log(`INDEX route hit: ${ipAddress}, ${city}, ${state}, ${countryCode}`);
 
     // const thisUsersDbId = req.session.usersDbId;
-    const foundUser = await User.find({ sP_id: req.body.id });
+    const foundUser = await User.find({ sP_id: req.body });
     res.json({
       status: 200,
       user: foundUser,

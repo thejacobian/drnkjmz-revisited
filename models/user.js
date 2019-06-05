@@ -10,6 +10,7 @@ const userSchema = new mongoose.Schema({
   state: String,
   country: String,
   postal_code: String,
+  ip: String,
   cocktails: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Cocktail' }],
 });
 

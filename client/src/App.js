@@ -80,7 +80,7 @@ class App extends Component {
       artist: "",
       cocktail: null,
       newCocktail: null,
-      updateCocktail: null,
+      updatedCocktail: null,
       artistResults: null,
       response: null,
       deviceName: null,
@@ -103,6 +103,7 @@ class App extends Component {
       sPUser: null,
       curUser: null,
       newUser: null,
+      updatedUser: null,
     };
     this.getCurrentlyPlaying = this.getCurrentlyPlaying.bind(this);
     this.previousTrack = this.previousTrack.bind(this);
@@ -172,17 +173,16 @@ class App extends Component {
       await this.getMe();
 
       // search backend Users for logged in Spotify user for saving cocktails
-      const loginUser = await this.loginUser();
-      if (!loginUser) {
+      const loggedUser = await this.loginUser();
+      if (!loggedUser) {
         console.log(`No corresponding user found for Spotify user: ${this.state.sPUser.display_name}`);
         // create newUser in backend using sPUser data in state
         const newUser = await this.createUser();
-        if (newUser) {
-          const newUser = await this.loginUser();
+        if (!newUser) {
           console.log ('User creation request to backend failed')
         }
       } else {
-        console.log ('User login request to backend failed')
+        console.log ('User login request to backend was successful')
       }
 
       // get the user deviceName
@@ -527,7 +527,7 @@ class App extends Component {
       console.log(`Cocktail with _id:${parsedResponse.data._id} was updated`);
       alert(`Cocktail with _id:${parsedResponse.data._id} was updated`);
         await this.setState({
-            updateCocktail: await parsedResponse.data
+            updatedCocktail: await parsedResponse.data
         }, ()=>{
             this.state.history.push("/cocktails")
         })
@@ -586,7 +586,7 @@ class App extends Component {
         return null;
       }
 
-      const createUser = await fetch(`${process.env.REACT_APP_BACKEND_ADDRESS}/api/v1/users/register`, {
+      const createdUser = await fetch(`${process.env.REACT_APP_BACKEND_ADDRESS}/api/v1/users/register`, {
         credentials: 'include',
         method: "POST",
         body: JSON.stringify(dbUser),
@@ -594,16 +594,15 @@ class App extends Component {
             "Content-Type": 'application/json'
         }
       });
-      const parsedResponse = await createUser.json();
+      const parsedResponse = await createdUser.json();
       if(parsedResponse.status === 200){
-        console.log(`User with _id:${parsedResponse.data.user._id} was created`);
-        alert(`User with _id:${parsedResponse.data.user._id} was created`);
+        console.log(`User with _id:${parsedResponse.user._id} was created`);
         await this.setState({
-            newUser: await parsedResponse.data
+            newUser: await parsedResponse.user
         }, ()=>{
             this.state.history.push("/users")
         })
-        return parsedResponse.data;
+        return parsedResponse.user;
       } else {
         console.log('The User creation was unsuccessful');
         return null;
@@ -615,29 +614,28 @@ class App extends Component {
 
   loginUser = async () => {
     try {
-      if (this.state.token) {
-      const loginUser = await fetch(`${process.env.REACT_APP_BACKEND_ADDRESS}/api/v1/users/login`, {
-        credentials: 'include',
-        method: "POST",
-        body: JSON.stringify(this.state.sPUser.id),
-        headers: {
-            "Content-Type": 'application/json'
-        }
-      })
-      const parsedResponse = await loginUser.json();
-      if(parsedResponse.status === 200){
-        console.log(`User with _id:${parsedResponse.data._id} was logged in`);
-        alert(`User with _id:${parsedResponse.data._id} was logged in`);
-        await this.setState({
-            curUser: await parsedResponse.data
-        }, ()=>{
-            this.state.history.push("/users")
+      if (this.state.token && this.state.sPUser) {
+        const loginUser = await fetch(`${process.env.REACT_APP_BACKEND_ADDRESS}/api/v1/users/login`, {
+          credentials: 'include',
+          method: "POST",
+          body: JSON.stringify(this.state.sPUser),
+          headers: {
+              "Content-Type": 'application/json'
+          }
         })
-        return parsedResponse.data;
-      } else {
-        console.log('The User login was unsuccessful');
-        return null;
-      }
+        const parsedResponse = await loginUser.json();
+        if(parsedResponse.status === 200){
+          console.log(`User with _id:${parsedResponse.user._id} was logged in`);
+          await this.setState({
+              curUser: await parsedResponse.user
+          }, ()=>{
+              this.state.history.push("/users")
+          })
+          return parsedResponse.user;
+        } else {
+          console.log('The User login was unsuccessful');
+          return null;
+        }
       } else {
         console.log ("Please log in to Spotify before using app.")
       }
@@ -658,14 +656,14 @@ class App extends Component {
       })
       const parsedResponse = await updatedUser.json();
       if(parsedResponse.status === 200){
-        console.log(`User with _id:${parsedResponse.data._id} was updated`);
-        alert(`User with _id:${parsedResponse.data._id} was updated`);
+        console.log(`User with _id:${parsedResponse.user._id} was updated`);
+        alert(`User with _id:${parsedResponse.user._id} was updated`);
           await this.setState({
-              updateUser: await parsedResponse.data
+              updatedUser: await parsedResponse.user
           }, ()=>{
               this.state.history.push("/users")
           })
-          return parsedResponse.data;
+          return parsedResponse.user;
       } else {
         console.log('The User update was unsuccessful');
         alert('The User update was unsuccessful');
