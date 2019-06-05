@@ -1,9 +1,15 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  location: String,
+  sP_id: { type: String, required: true, unique: true },
+  username: String,
+  // password: { type: String, required: true },
+  email: String,
+  birthdate: String,
+  city: String,
+  state: String,
+  country: String,
+  postal_code: String,
   cocktails: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Cocktail' }],
 });
 

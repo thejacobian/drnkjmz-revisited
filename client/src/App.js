@@ -34,14 +34,14 @@ const sPClientId = process.env.REACT_APP_SPOTIFY_CLIENT_ID;
 const sPRedirectUri= process.env.REACT_APP_SPOTIFY_REDIRECT_URI;
 const sPScopes = [
   // 'streaming',
-  // 'user-read-private',
+  'user-read-private',
   // 'user-read-birthdate',
   // 'user-read-email',
   // 'user-library-read',
   // 'user-library-modify',
   // 'user-top-read',
   // 'user-follow-read',
-  // 'user-follow-modify',
+  'user-follow-modify',
   'user-modify-playback-state',
   'user-read-playback-state',
   'user-read-currently-playing',
@@ -100,6 +100,9 @@ class App extends Component {
       history: [],
       externalWindow: null,
       isOpen: false,
+      sPUser: null,
+      curUser: null,
+      newUser: null,
     };
     this.getCurrentlyPlaying = this.getCurrentlyPlaying.bind(this);
     this.previousTrack = this.previousTrack.bind(this);
@@ -110,6 +113,18 @@ class App extends Component {
     // this.toggleJS = this.toggleJS.bind(this);
   }
   
+  // Make a call to the spotify ext API from getDeviceIds
+  getDeviceIds = async () => {
+    await spotifyApi.getMyDevices()
+    .then(async (response) => {
+      await this.setState({
+        allDeviceIds: await response.devices,
+      });
+    }).catch((err) => {
+      console.log(`${err} in the spotify getDeviceIds ext API lib call`);
+    });
+  }
+
   // helper function to set this.state.deviceName
   setDeviceName = async () => {
 
@@ -153,6 +168,23 @@ class App extends Component {
       // set spotifyApi to our access token to be able to make requests
       await spotifyApi.setAccessToken(_token);
 
+      // get the user private data for new User creation in backend
+      await this.getMe();
+
+      // search backend Users for logged in Spotify user for saving cocktails
+      const loginUser = await this.loginUser();
+      if (!loginUser) {
+        console.log(`No corresponding user found for Spotify user: ${this.state.sPUser.display_name}`);
+        // create newUser in backend using sPUser data in state
+        const newUser = await this.createUser();
+        if (newUser) {
+          const newUser = await this.loginUser();
+          console.log ('User creation request to backend failed')
+        }
+      } else {
+        console.log ('User login request to backend failed')
+      }
+
       // get the user deviceName
       await this.setDeviceName();
 
@@ -170,6 +202,11 @@ class App extends Component {
     }
   }
 
+  componentWillUnmount() {
+    //clear the interval when unmounting the page to avoid memory leak
+    clearInterval(this.interval);
+  }
+  
   handleChange = (e) => {
     this.setState({
         [e.target.name]: e.target.value
@@ -246,6 +283,52 @@ class App extends Component {
     console.log(formArtist, ': formArtist from handleSubmit');
 
     await this.getNewCocktail(formArtist);
+  }
+
+  syncNewTrack = async () => {
+    // update setDeviceName for PlayerComp to current nowPlaying device
+    await this.setDeviceName();
+    // sync with Spotify and getCurrentlyPlaying state
+    await this.getCurrentlyPlaying();
+    console.log(this.state.nowPlaying.artists[0].name, ': nowPlaying.artist in syncNewTrack');
+    // sync with Spotify and get new cocktail state
+    await this.handleSubmit(null, this.state.nowPlaying.artists[0].name);
+  }
+
+  setTrackProgress = async () => {
+    await this.setState({
+      progress_ms: this.state.progress_ms + 250
+    });
+
+    if (this.state.progress_ms > this.state.nowPlaying.duration_ms) {
+      clearInterval(this.interval);
+      //update currentlyPlaying with new track
+      this.syncNewTrack();
+    }
+  }
+
+  // Make a call to the spotify ext API from getCurrentlyPlaying
+  getCurrentlyPlaying = async () => {
+    clearInterval(this.interval);
+
+    await spotifyApi.getMyCurrentPlaybackState()
+      .then( async(response) => {
+        if (response.item.artists) {
+          await this.setState({
+            response: await response,
+            nowPlaying: await response.item,
+            deviceId: await response.device.id,
+            isPlaying: await response.is_playing,
+            progress_ms: await response.progress_ms, 
+          });
+        }
+      }).catch((err) => {
+        console.log(`${err} in the spotify getCurrentlyPlaying ext API lib call`);
+      }
+    );
+
+    // start interval time to update the progress_bar in PlayerComp
+    this.interval = setInterval(await this.setTrackProgress, 250);
   }
 
   // Make a call to the spotify ext API from getArtistResults
@@ -334,18 +417,6 @@ class App extends Component {
     clearInterval(this.interval);
   }
 
-    // Make a call to the spotify ext API from getDeviceIds
-  getDeviceIds = async () => {
-    await spotifyApi.getMyDevices()
-    .then(async (response) => {
-      await this.setState({
-        allDeviceIds: await response.devices,
-      });
-    }).catch((err) => {
-      console.log(`${err} in the spotify getDeviceIds ext API lib call`);
-    });
-  }
-
   // Make a call to the spotify ext API from playTrack
   playTrack = async (uri) => {
 
@@ -397,61 +468,23 @@ class App extends Component {
     await setTimeout(await this.getCurrentlyPlaying, 200);
   }
 
-  syncNewTrack = async () => {
-    // update setDeviceName for PlayerComp to current nowPlaying device
-    await this.setDeviceName();
-    // sync with Spotify and getCurrentlyPlaying state
-    await this.getCurrentlyPlaying();
-    console.log(this.state.nowPlaying.artists[0].name, ': nowPlaying.artist in syncNewTrack');
-    // sync with Spotify and get new cocktail state
-    await this.handleSubmit(null, this.state.nowPlaying.artists[0].name);
-  }
-
-  setTrackProgress = async () => {
-    await this.setState({
-      progress_ms: this.state.progress_ms + 250
+  // Make a call to the spotify ext API from getDeviceIds
+  getMe = async () => {
+    await spotifyApi.getMe()
+    .then(async (response) => {
+      console.log(response, "sPUser")
+      await this.setState({
+        sPUser: await response,
+      });
+    }).catch((err) => {
+      console.log(`${err} in the spotify getDeviceIds ext API lib call`);
     });
-
-    if (this.state.progress_ms > this.state.nowPlaying.duration_ms) {
-      clearInterval(this.interval);
-      //update currentlyPlaying with new track
-      this.syncNewTrack();
-    }
-  }
-
-  // Make a call to the spotify ext API from getCurrentlyPlaying
-  getCurrentlyPlaying = async () => {
-    clearInterval(this.interval);
-
-    await spotifyApi.getMyCurrentPlaybackState()
-      .then( async(response) => {
-        if (response.item.artists) {
-          await this.setState({
-            response: await response,
-            nowPlaying: await response.item,
-            deviceId: await response.device.id,
-            isPlaying: await response.is_playing,
-            progress_ms: await response.progress_ms, 
-          });
-        }
-      }).catch((err) => {
-        console.log(`${err} in the spotify getCurrentlyPlaying ext API lib call`);
-      }
-    );
-
-    // start interval time to update the progress_bar in PlayerComp
-    this.interval = setInterval(await this.setTrackProgress, 250);
   }
 
   toggleJS = () => {
     this.setState(prevState => ({
       js: !prevState.js
     }));
-  }
-
-  componentWillUnmount() {
-    //clear the interval when unmounting the page to avoid memory leak
-    clearInterval(this.interval);
   }
 
   createCocktail = async (formData) => {
@@ -465,16 +498,16 @@ class App extends Component {
     })
     const parsedResponse = await newCocktail.json();
     if(parsedResponse.status === 200){
-      console.log(`cocktail with _id:${parsedResponse.data._id} was created`);
-      alert(`cocktail with _id:${parsedResponse.data._id} was created`);
+      console.log(`Cocktail with _id:${parsedResponse.data._id} was created`);
+      alert(`Cocktail with _id:${parsedResponse.data._id} was created`);
       await this.setState({
           newCocktail: await parsedResponse.data
       }, ()=>{
           this.state.history.push("/cocktails")
       })
     } else {
-      console.log('The creation was unsuccessful');
-      alert('The creation was unsuccessful');
+      console.log('The Cocktail creation was unsuccessful');
+      alert('The Cocktail creation was unsuccessful');
     }
   }
 
@@ -491,16 +524,16 @@ class App extends Component {
     })
     const parsedResponse = await updatedCocktail.json();
     if(parsedResponse.status === 200){
-      console.log(`cocktail with _id:${parsedResponse.data._id} was updated`);
-      alert(`cocktail with _id:${parsedResponse.data._id} was updated`);
+      console.log(`Cocktail with _id:${parsedResponse.data._id} was updated`);
+      alert(`Cocktail with _id:${parsedResponse.data._id} was updated`);
         await this.setState({
             updateCocktail: await parsedResponse.data
         }, ()=>{
             this.state.history.push("/cocktails")
         })
     } else {
-      console.log('The update was unsuccessful');
-      alert('The update was unsuccessful');
+      console.log('The Cocktail update was unsuccessful');
+      alert('The Cocktail update was unsuccessful');
     }
   }
 
@@ -511,21 +544,156 @@ class App extends Component {
         credentials: 'include'
       });
       if (deletedCocktail.status === 200) {
-        console.log(`cocktail with _id:${this.state.cocktail.data._id} was deleted`);
-        alert(`cocktail with _id:${this.state.cocktail.data._id} was deleted`);
+        console.log(`Cocktail with _id:${this.state.cocktail.data._id} was deleted`);
+        alert(`Cocktail with _id:${this.state.cocktail.data._id} was deleted`);
       } else {
-        console.log('The delete was unsuccessful');
-        alert('The delete was unsuccessful');
+        console.log('The Cocktail delete was unsuccessful');
+        alert('The Cocktail delete was unsuccessful');
       }
     } catch(err) {
       console.log(err);
     }
   }
 
+  favoriteCocktail = async (e) => {
+
+    // toggle the color of the favoriteBtn image
+    if (e.target.getAttribute("src") === "/images/GreyWhiteStar.png") {
+      e.target.setAttribute("src", "/images/GreenWhiteStar.png");
+    } else {
+      e.target.setAttribute("src", "/images/GreyWhiteStar.png");
+    }
+
+  }
+
   toggleNav() {
     this.setState({
       isOpen: !this.state.isOpen
     });
+  }
+
+  createUser = async () => {
+    try {
+      const dbUser = {};
+      if (this.state.sPUser) {
+        dbUser.username = this.state.sPUser.display_name;
+        dbUser.sP_id = this.state.sPUser.id;
+        dbUser.email = this.state.sPUser.email;
+        dbUser.birthdate = this.state.sPUser.birthdate;
+        dbUser.country = this.state.sPUser.country;
+      } else {
+        console.log('No sPUser data found in state in createUser');
+        return null;
+      }
+
+      const createUser = await fetch(`${process.env.REACT_APP_BACKEND_ADDRESS}/api/v1/users/register`, {
+        credentials: 'include',
+        method: "POST",
+        body: JSON.stringify(dbUser),
+        headers: {
+            "Content-Type": 'application/json'
+        }
+      });
+      const parsedResponse = await createUser.json();
+      if(parsedResponse.status === 200){
+        console.log(`User with _id:${parsedResponse.data.user._id} was created`);
+        alert(`User with _id:${parsedResponse.data.user._id} was created`);
+        await this.setState({
+            newUser: await parsedResponse.data
+        }, ()=>{
+            this.state.history.push("/users")
+        })
+        return parsedResponse.data;
+      } else {
+        console.log('The User creation was unsuccessful');
+        return null;
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  loginUser = async () => {
+    try {
+      if (this.state.token) {
+      const loginUser = await fetch(`${process.env.REACT_APP_BACKEND_ADDRESS}/api/v1/users/login`, {
+        credentials: 'include',
+        method: "POST",
+        body: JSON.stringify(this.state.sPUser.id),
+        headers: {
+            "Content-Type": 'application/json'
+        }
+      })
+      const parsedResponse = await loginUser.json();
+      if(parsedResponse.status === 200){
+        console.log(`User with _id:${parsedResponse.data._id} was logged in`);
+        alert(`User with _id:${parsedResponse.data._id} was logged in`);
+        await this.setState({
+            curUser: await parsedResponse.data
+        }, ()=>{
+            this.state.history.push("/users")
+        })
+        return parsedResponse.data;
+      } else {
+        console.log('The User login was unsuccessful');
+        return null;
+      }
+      } else {
+        console.log ("Please log in to Spotify before using app.")
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  updateUser = async (formData) => {
+    try {
+      const updatedUser = await fetch(`${process.env.REACT_APP_BACKEND_ADDRESS}/api/v1/users`, {
+        credentials: 'include',
+        method: "PUT",
+        body: JSON.stringify(formData),
+        headers: {
+            "Content-Type": 'application/json'
+        }
+      })
+      const parsedResponse = await updatedUser.json();
+      if(parsedResponse.status === 200){
+        console.log(`User with _id:${parsedResponse.data._id} was updated`);
+        alert(`User with _id:${parsedResponse.data._id} was updated`);
+          await this.setState({
+              updateUser: await parsedResponse.data
+          }, ()=>{
+              this.state.history.push("/users")
+          })
+          return parsedResponse.data;
+      } else {
+        console.log('The User update was unsuccessful');
+        alert('The User update was unsuccessful');
+        return null;
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  deleteUser = async () => {
+    try {
+      const deletedUser = await fetch(`${process.env.REACT_APP_BACKEND_ADDRESS}/api/v1/users/${this.state.user.data._id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (deletedUser.status === 200) {
+        console.log(`User with _id:${this.state.user.data._id} was deleted`);
+        alert(`User with _id:${this.state.user.data._id} was deleted`);
+        return deletedUser;
+      } else {
+        console.log('The User delete was unsuccessful');
+        alert('The User delete was unsuccessful');
+        return null;
+      }
+    } catch(err) {
+      console.log(err);
+    }
   }
 
   render() {
@@ -552,7 +720,7 @@ class App extends Component {
           <Collapse isOpen={this.state.isOpen} navbar>
             <Nav className="ml-auto" navbar>
               <NavItem>
-                <NavLink id="nav-login-btn" className="btn-non-controls btn-sm"
+                <NavLink id="navlink-login-btn" className="btn-non-controls btn-sm"
                   href={`${sPAuthEndpoint}?client_id=${sPClientId}&redirect_uri=${sPRedirectUri}&scope=${sPScopes.join("%20")}&response_type=token&show_dialog=true`}
                 >Login With Spotify</NavLink>
               </NavItem>
@@ -564,7 +732,7 @@ class App extends Component {
           {!this.state.token ? (
             <div>
               <h3>Welcome to DRNKJMZ</h3>
-              <p className="normal-text">An app that links to your Spotify account to recommend the perfect cocktail for your listening experience!</p>
+              <p className="normal-text">An app that links to your <img className="smSpotifyLogo" src="/images/Spotify_Logo_RGB_Green.png"/> account to recommend the perfect cocktail for your listening experience!</p>
               <img src={logo} alt="logo"/><br/>
               <a id="login-btn" className="btn btn-non-controls"
                 href={`${sPAuthEndpoint}?client_id=${sPClientId}&redirect_uri=${sPRedirectUri}&scope=${sPScopes.join("%20")}&response_type=token&show_dialog=true`}
@@ -572,7 +740,7 @@ class App extends Component {
             </div>
           ) : (
             <div>
-              <h3>Successfully linked to Spotify!</h3>
+              <h3>Successfully linked to <img className="lgSpotifyLogo" src="/images/Spotify_Logo_RGB_Green.png"/>!</h3>
               <p className="normal-text">Either use the buttons below to control playback or search for a new Artist above.</p>
             </div>
           )}
@@ -608,7 +776,12 @@ class App extends Component {
 
           {this.state.token && this.state.cocktail && (
             <div>
-              <p className="normal-text">A perfect cocktail pairing for {this.state.artistResults !== null ? this.state.artistResults[0].name : 'the Artist'} has been recommended below...</p>
+              <div id="cocktailPairingDiv">
+                <p className="normal-text">A perfect cocktail pairing for {this.state.artistResults !== null ? this.state.artistResults[0].name : 'the Artist'} has been recommended below...</p>
+              </div>
+              <div id="favoriteBtnDiv">
+                <img alt="likeButton" title="Click to Favorite this drink" id="favoriteBtn" src="/images/GreyWhiteStar.png" onClick={(e) => {e.preventDefault(); this.favoriteCocktail(e); }}/>
+              </div>
               <CocktailComp
                 nowPlaying={this.state.nowPlaying}
                 cocktailDirections={this.state.cocktail.data.directions}
@@ -621,7 +794,7 @@ class App extends Component {
           {!this.state.token && (
             <div>
               <br/>
-              <p className="normal-text">NOTE: If Spotify is not already streaming, open the player at <a id="spotify-link" href="https://open.spotify.com/" target="_blank">https://open.spotify.com/</a> before clicking Login.</p>
+              <p className="normal-text">NOTE: If <img className="smSpotifyLogo" src="/images/Spotify_Logo_RGB_Green.png"/> is not already streaming, open the player at <a id="spotify-link" href="https://open.spotify.com/" target="_blank">https://open.spotify.com/</a> before clicking Login.</p>
             </div>
           )}
 

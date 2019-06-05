@@ -4,7 +4,7 @@ const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
 const cors = require('cors');
-// const session = require('express-session');
+const session = require('express-session');
 const morgan = require('morgan');
 // const MongoDBStore = require('connect-mongodb-session')(session);
 const path = require('path');
@@ -36,27 +36,26 @@ app.use(morgan('short'));
 // app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 
-// // set up express-session
-// app.use(session({
-//   saveUninitialized: true,
-//   secret: process.env.SECRET,
-//   resave: false,
-//   store: store,
-//   cookie: {
-//     maxAge: 1000 * 60 * 60 * 24 * 7 // 1 week
-//   },
-// }));
+// set up express-session
+app.use(session({
+  saveUninitialized: true,
+  secret: process.env.SECRET,
+  resave: false,
+  // store: store,
+  cookie: {
+    maxAge: 1000 * 60 * 60 * 24 * 7 // 1 week
+  },
+}));
 
-// // debugging userId from session in console ***REMOVE FOR PROD***
-// app.use((req, res, next)=>{
-//   console.log(`Incoming request from UserId: ${req.session.userId}`)
-//   next();
-// });
+// debugging userId from session in console ***REMOVE FOR PROD***
+app.use((req, res, next)=>{
+  console.log(`Incoming request from UserId: ${req.session.userId}`)
+  next();
+});
 
 // // require the controllers
 const userController = require('./controllers/userController');
 const cocktailController = require('./controllers/cocktailController');
-// const authController  = require('./controllers/authController');
 
 // use the controllers
 app.use('/api/v1/users', userController);

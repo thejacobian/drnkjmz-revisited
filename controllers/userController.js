@@ -24,7 +24,7 @@ const getClientLocationFromIP = async () => {
     const result = await fetch(request);
     const parsedResult = await result.json();
     console.log(parsedResult);
-    return parsedResult.country;
+    return parsedResult;
   } catch (err) {
     console.log(`${err} in the geoiplookup.io ext API call`);
     return null;
@@ -52,19 +52,20 @@ router.get('/', /*requireLogin,*/ async (req, res) => {
     console.log(`INDEX route hit: ${ipAddress}, ${city}, ${state}, ${countryCode}`);
     res.send(`INDEX route hit: ${ipAddress}, ${city}, ${state}, ${countryCode}`);
     
-    // const thisUsersDbId = req.session.usersDbId;
-    // const users = await User.find({});
-    // res.render('users/index.ejs', {
-    //   users,
-    //   currentUser: thisUsersDbId,
-    // });
+    const thisUsersDbId = req.session.usersDbId;
+    const users = await User.find({});
+    res.json({
+      status: 200,
+      users: users,
+      currentUser: thisUsersDbId
+    });
   } catch (err) {
-    res.send(err);
+    res.json(err);
   }
 });
 
 // SHOW route
-router.get('/:id', requireLogin, async (req, res) => {
+router.get('/:id', /*requireLogin,*/ async (req, res) => {
   // get the User's IP address from the HTTP request X-Forwarded-For header (from Stack Overflow)
   ipAddress = req.headers['x-forwarded-for']
     || req.connection.remoteAddress
@@ -76,23 +77,26 @@ router.get('/:id', requireLogin, async (req, res) => {
 
   try {
     const thisUsersDbId = req.session.usersDbId;
-    if (req.params.id === thisUsersDbId) {
-      const thisUsersDbId = req.session.usersDbId;
-      const foundUser = await User.findById(req.params.id).populate({ path: 'cocktails' });
+    // if (req.params.id === thisUsersDbId) {
+      const foundUser = await User.findById(req.params.id).populate('cocktails');
       // , populate: { path: 'cocktails' } });
       // const allCocktails = await Cocktail.find({});
-      res.render('users/show.ejs', {
+      res.json({
+        status: 200,
         user: foundUser,
         currentUser: thisUsersDbId,
-        // allCocktails,
       });
-    } else {
-      req.session.message = 'You do not have access to this user';
-      console.log(req.session.message);
-      res.send(req.session.message);
-    }
+    // } else {
+    //   req.session.message = 'You do not have access to this user';
+    //   console.log(req.session.message);
+    //   res.json({
+    //     status: 500,
+    //     user: null,
+    //     currentUser: thisUsersDbId,
+    //   });
+    // }
   } catch (err) {
-    res.send(err);
+    res.json(err);
   }
 });
 
@@ -117,7 +121,7 @@ router.get('/:id', requireLogin, async (req, res) => {
 // });
 
 // UPDATE route
-router.put('/:id', requireLogin, async (req, res) => {
+router.put('/:id', /*requireLogin,*/ async (req, res) => {
   // get the User's IP address from the HTTP request X-Forwarded-For header (from Stack Overflow)
   ipAddress = req.headers['x-forwarded-for']
     || req.connection.remoteAddress
@@ -128,23 +132,30 @@ router.put('/:id', requireLogin, async (req, res) => {
   }
 
   try {
-    const thisUsersDbId = req.session.usersDbId;
-    if (req.params.id === thisUsersDbId) {
-      req.body.password = bcrypt.hashSync(req.body.password, bcrypt.genSaltSync(10));
+    // const thisUsersDbId = req.session.usersDbId;
+    // if (req.params.id === thisUsersDbId) {
+      // req.body.password = bcrypt.hashSync(req.body.password, bcrypt.genSaltSync(10));
       const updatedUser = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
-      res.redirect('/auth/login');
-    } else {
-      req.session.message = 'You do not have access to this user';
-      console.log(req.session.message);
-      res.send(req.session.message);
-    }
+      res.json({
+        status: 200,
+        user: updatedUser
+      });
+    // } else {
+    //   req.session.message = 'You do not have access to this user';
+    //   console.log(req.session.message);
+    //   res.send(req.session.message);
+    //   res.json({
+    //     status: 500,
+    //     user: null,
+    //   })
+    // }
   } catch (err) {
-    res.send(err);
+    res.json(err);
   }
 });
 
 // DELETE route
-router.delete('/:id', requireLogin, async (req, res) => {
+router.delete('/:id', /*requireLogin,*/ async (req, res) => {
   // get the User's IP address from the HTTP request X-Forwarded-For header (from Stack Overflow)
   ipAddress = req.headers['x-forwarded-for']
     || req.connection.remoteAddress
@@ -155,17 +166,26 @@ router.delete('/:id', requireLogin, async (req, res) => {
   }
 
   try {
-    const thisUsersDbId = req.session.usersDbId;
-    if (req.params.id === thisUsersDbId) {
+    // const thisUsersDbId = req.session.usersDbId;
+    // if (req.params.id === thisUsersDbId) {
       const deletedUser = await User.findByIdAndRemove(req.params.id);
       console.log(deletedUser);
-    } else {
-      req.session.message = 'You do not have access to this user';
-      console.log(req.session.message);
-      res.send(req.session.message);
-    }
+      res.json({
+        status: 200,
+        deleted: true,
+        user: deletedUser,
+      });
+    // } else {
+    //   req.session.message = 'You do not have access to this user';
+    //   console.log(req.session.message);
+    //   res.json({
+    //     status: 500,
+    //     deleted: false,
+    //     user: null,
+    //   })
+    // }
   } catch (err) {
-    res.send(err);
+    res.json(err);
   }
 });
 
@@ -181,38 +201,49 @@ router.delete('/:id', requireLogin, async (req, res) => {
 // CREATE/REGISTER route
 router.post('/register', showMessagesAndUsername, async (req, res) => {
   try {
-
     // get the User's IP address from the HTTP request X-Forwarded-For header (from Stack Overflow)
+    let geoData;
     ipAddress = req.headers['x-forwarded-for']
       || req.connection.remoteAddress
       || req.socket.remoteAddress
       || (req.connection.socket ? req.connection.socket.remoteAddress : null);
     if (ipAddress) {
-      getClientLocationFromIP();
+      geoData = await getClientLocationFromIP();
     }
 
-    const foundUser = await User.findOne({ username: req.body.username });
+    const foundUser = await User.findOne({ sP_id: req.body.id });
     if (!foundUser) {
-      const { password } = req.body;
-      const passwordHash = bcrypt.hashSync(password, bcrypt.genSaltSync(10));
-      const userDbEntry = {};
-      userDbEntry.username = req.body.username;
-      userDbEntry.password = passwordHash;
+      // const { password } = req.body;
+      // const passwordHash = bcrypt.hashSync(password, bcrypt.genSaltSync(10));
+      // userDbEntry.password = passwordHash;
+      const userDbEntry = req.body;
+
+      if (geoData) {
+        userDbEntry.city = geoData.city;
+        userDbEntry.state = geoData.district;
+        userDbEntry.postal_code = geoData.postal_code;
+      }
+
       const createdUser = await User.create(userDbEntry);
       req.session.logged = true;
       req.session.usersDbId = createdUser._id;
-      res.redirect('/dreams');
+      res.json({
+        status: 200,
+        loggedIn: true,
+        user: createdUser,
+      });
     } else {
-      req.session.message = 'This username is already taken. Please choose again.';
+      req.session.message = 'This username/id is already taken. Please try again.';
       console.log(req.session.message);
       const thisUsersDbId = req.session.usersDbId;
-      res.render('auth/register.ejs', {
-        currentUser: thisUsersDbId,
-        message: req.session.message,
+      res.json({
+        status: 500,
+        loggedIn: false,
+        user: null
       });
     }
   } catch (err) {
-    res.send(err);
+    res.json(err);
   }
 });
 
@@ -248,28 +279,40 @@ router.post('/login', showMessagesAndUsername, async (req, res) => {
   }
 
   try {
-    const foundUser = await User.findOne({ username: req.body.username });
+    const foundUser = await User.findOne({ sP_id: req.body.id });
     if (foundUser) {
-      if (bcrypt.compareSync(req.body.password, foundUser.password) === true) {
-        console.log(req.body.password);
+      // if (bcrypt.compareSync(req.body.password, foundUser.password) === true) {
+        // console.log(req.body.password);
         req.session.message = '';
         req.session.logged = true;
-        req.session.username = req.body.username;
+        req.session.sP_id = req.body.id;
         req.session.usersDbId = foundUser._id;
         console.log(req.session, 'successful login');
-        res.redirect('/dreams');
-      } else {
-        req.session.message = 'Incorrect username or password. Please try again.';
-        console.log(req.session.message);
-        renderLoginPage(req, res);
-      }
+        res.json({
+          status: 200,
+          user: foundUser,
+          loggedIn: true,
+        });
+      // } else {
+      //   req.session.message = 'Incorrect username or password. Please try again.';
+      //   console.log(req.session.message);
+      //   res.json({
+      //     status: 500,
+      //     user: null,
+      //     loggedIn: false
+      //   });
+      // }
     } else {
-      req.session.message = 'Incorrect username or password. Please try again.';
+      req.session.message = 'Incorrect credentials. Please log in to Spotify again.';
       console.log(req.session.message);
-      renderLoginPage(req, res);
+      res.json({
+        status: 500,
+        user: null,
+        loggedIn: false,
+      });
     }
   } catch (err) {
-    res.send(err);
+    res.json(err);
   }
 });
 
@@ -277,11 +320,45 @@ router.post('/login', showMessagesAndUsername, async (req, res) => {
 router.get('/logout', (req, res) => {
   req.session.destroy((err) => {
     if (err) {
-      res.send(err);
+      res.json(err);
     } else {
-      res.redirect('/auth/login');
+      res.json({
+        status: 200,
+        loggedIn: false,
+      });
     }
   });
+});
+
+// FIND route
+router.post('/find', /*requireLogin,*/ async (req, res) => {
+  try {
+
+    // get the User's IP address from the HTTP request X-Forwarded-For header (from Stack Overflow)
+    ipAddress = req.headers['x-forwarded-for']
+      || req.connection.remoteAddress
+      || req.socket.remoteAddress
+      || (req.connection.socket ? req.connection.socket.remoteAddress : null);
+    if (ipAddress === '::1') {
+      ipAddress = '63.149.97.94';
+      city = 'Denver';
+      state = 'CO';
+      countryCode = 'US';
+    } else {
+      getClientLocationFromIP();
+    }
+
+    console.log(`INDEX route hit: ${ipAddress}, ${city}, ${state}, ${countryCode}`);
+
+    // const thisUsersDbId = req.session.usersDbId;
+    const foundUser = await User.find({ sP_id: req.body.id });
+    res.json({
+      status: 200,
+      user: foundUser,
+    });
+  } catch (err) {
+    res.json(err);
+  }
 });
 
 module.exports = router;

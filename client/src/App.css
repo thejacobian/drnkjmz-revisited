@@ -25,6 +25,14 @@
 /* color: green !important; */
 }
 
+.smSpotifyLogo {
+  width: 17vw;
+}
+
+.lgSpotifyLogo {
+  width: 22vw;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -89,8 +97,33 @@ body {
   font-weight: 700 !important;
 }
 
-#nav-login-btn {
+#favoriteBtn {
+  width: 9vw;
+}
+
+#cocktailPairingDiv {
+  padding: 2vw;
+  padding-left: 10vw;
+  width: 74vw;
+  float: left;
+}
+
+#favoriteBtnDiv {
+  padding: 2vw;
+  padding-right: 5vw;
+}
+
+#navlink-login-btn {
+  display: table-cell !important;
+  vertical-align:middle !important;
+  height: 50px !important;
   width: 218px !important;
+}
+
+#navlink-login-btn:hover {
+  background: rgb(0,196,85) !important;
+  color: rgba(0,0,0,0.8) !important;
+  font-weight: 700 !important;
 }
 /** Background **/
 
@@ -186,7 +219,7 @@ body {
 /** Navbar Styling **/
 
 #artistSearch {
-  min-width: 32vh !important;
+  min-width: 34vh !important;
   display: inline !important;
 }
 
@@ -264,8 +297,6 @@ h3 {
   }
 
   #submit-btn {
-    width: 215px !important;
-    height: 50px !important;
     font-size: 15px !important;
     text-align: center;
     justify-self: auto;
