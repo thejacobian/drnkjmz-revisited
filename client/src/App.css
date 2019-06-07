@@ -172,7 +172,6 @@ input {
   background-size: cover;
   background-position: center center;
   filter: blur(8em) opacity(0.6);
-  position: absolute;
 }
 
 .main-wrapper {
@@ -214,6 +213,11 @@ input {
   margin-bottom: 1em;
 }
 
+.now-playing__device-select {
+  font-size: 1.2em;
+  margin-bottom: 0.25em;
+}
+
 .now-playing__status {
   font-size: 1.2em;
   margin-bottom: 1em;
@@ -236,7 +240,6 @@ input {
   margin-left: 5%;
   width: 45%;
 }
-
 
 /** Progress Bar **/
 

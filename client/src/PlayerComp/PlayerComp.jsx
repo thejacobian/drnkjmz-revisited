@@ -9,16 +9,13 @@ class PlayerComp extends Component{
     }
   }
 
-  handleSubmit = (e) => {
-    e.preventDefault();
-    this.props.playOnDevice(this.state.deviceId);
-  }
-
   handleChange = (e) => {
+    e.preventDefault();
     this.setState({
         [e.target.name]: e.target.value
+    }, ()=>{
+      this.props.playOnDevice(this.state.deviceId);
     })
-    this.handleSubmit(e);
   }
   
   render () {

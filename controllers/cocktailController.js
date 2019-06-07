@@ -43,7 +43,7 @@ const populateCocktailsFunc = async () => {
             if (err) {
               console.log(err);
             } else {
-              console.log(createdCocktail);
+              // console.log(createdCocktail);
             }
           });
         }
@@ -108,9 +108,10 @@ router.put('/', requireLogin, async (req, res) => {
         data: updatedCocktail,
       });
     } else {
-      console.log('You do not have access to update cocktails');
+      req.session.message = 'You do not have access to update cocktails';
+      // console.log(req.session.message);
       res.json({
-        status: 500,
+        status: 404,
         data: null,
       });
     }
@@ -133,9 +134,10 @@ router.delete('/:id', requireLogin, async (req, res) => {
         data: deletedCocktail,
       });
     } else {
-      console.log('You do not have access to delete cocktails');
+      req.session.message = 'You do not have access to delete cocktails';
+      // console.log(req.session.message);
       res.json({
-        status: 500,
+        status: 404,
         data: null,
       });
     }
@@ -183,14 +185,14 @@ router.post('/search', async (req, res) => {
     // just return any matching cocktail if none found by genre
     if (isEmpty(allMatchingCocktails)) {
       // random mongoDB item from collection found on stack overflow
-      const count = await Cocktail.count({});
+      const count = await Cocktail.countDocuments({});
       randomCocktailIndex = Math.floor(Math.random() * count);
       matchingCocktail = await Cocktail.findOne().skip(randomCocktailIndex);
-      console.log('No matching cocktails, returning a random one!');
+      // console.log('No matching cocktails, returning a random one!');
     } else { // return one of the cocktails that is matching the genres
       randomCocktailIndex = Math.floor(Math.random() * allMatchingCocktails.length);
       matchingCocktail = allMatchingCocktails[randomCocktailIndex];
-      console.log(`Returning a matching cocktail: ${matchingCocktail}`);
+      // console.log(`Returning a matching cocktail: ${matchingCocktail}`);
     }
 
     res.json({

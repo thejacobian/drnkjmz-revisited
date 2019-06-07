@@ -20,7 +20,7 @@ const getClientLocationFromIP = async () => {
     const request = `https://json.geoiplookup.io/${geoData.ip}`;
     const result = await fetch(request);
     const parsedResult = await result.json();
-    console.log(parsedResult);
+    // console.log(parsedResult);
     return parsedResult;
   } catch (err) {
     console.log(`${err} in the geoiplookup.io ext API call`);
@@ -30,7 +30,7 @@ const getClientLocationFromIP = async () => {
 
 // INDEX route
 router.get('/getAllUsers', async (req, res) => {
-  console.log('INDEX user route hit');
+  // console.log('INDEX user route hit');
   try {
     const users = await User.find({}).populate('cocktails');
     res.json({
@@ -48,7 +48,7 @@ router.get('/getAllUsers', async (req, res) => {
 // SHOW route
 router.get('/:id', requireLogin, async (req, res) => {
 
-  console.log('SHOW user route hit');
+  // console.log('SHOW user route hit');
 
   try {
     const thisUserDbId = req.session.userDbId;
@@ -56,14 +56,14 @@ router.get('/:id', requireLogin, async (req, res) => {
       const foundUser = await User.findById(req.params.id).populate('cocktails');
       res.json({
         status: 200,
-        data: foundUser,
+        data: { _id: foundUser._id, sP_id: foundUser.sP_id, cocktails: foundUser.cocktails },
         currentUser: thisUserDbId,
       });
     } else {
       req.session.message = 'You do not have access to this user';
-      console.log(req.session.message);
+      // console.log(req.session.message);
       res.json({
-        status: 500,
+        status: 404,
         data: null,
         currentUser: thisUserDbId,
       });
@@ -92,7 +92,7 @@ router.put('/:id', requireLogin, async (req, res) => {
     geoData.district = 'CO';
     geoData.postal_code = '80205';
   }
-  console.log(`UPDATE user route hit: ${geoData.ip}, ${geoData.city}, ${geoData.district}, ${geoData.postal_code}`);
+  // console.log(`UPDATE user route hit: ${geoData.ip}, ${geoData.city}, ${geoData.district}, ${geoData.postal_code}`);
 
   try {
     const thisUserDbId = req.session.userDbId;
@@ -101,15 +101,15 @@ router.put('/:id', requireLogin, async (req, res) => {
       const updatedUser = await User.findByIdAndUpdate(req.params.id, req.body, { new: true }).populate('cocktails');
       res.json({
         status: 200,
-        data: updatedUser,
+        data: { _id: updatedUser._id, sP_id: updatedUser.sP_id, cocktails: updatedUser.cocktails },
         currentUser: thisUserDbId,
       });
     } else {
       req.session.message = 'You do not have access to update this user';
-      console.log(req.session.message);
+      // console.log(req.session.message);
       res.send(req.session.message);
       res.json({
-        status: 500,
+        status: 404,
         user: null,
         currentUser: thisUserDbId,
       });
@@ -124,23 +124,23 @@ router.put('/:id', requireLogin, async (req, res) => {
 
 // DELETE route
 router.delete('/:id', requireLogin, async (req, res) => {
-  console.log('DELETE user route hit');
+  // console.log('DELETE user route hit');
 
   try {
     const thisUserDbId = req.session.userDbId;
     if (req.params.id === thisUserDbId || req.session.sP_Id === '5cf9d13919d9e0a353b8164c') {
       const deletedUser = await User.findByIdAndRemove(req.params.id);
-      console.log(deletedUser);
+      // console.log(deletedUser);
       res.json({
         status: 200,
         deleted: true,
-        data: deletedUser,
+        data: { _id: deletedUser._id, sP_id: deletedUser.sP_id, cocktails: deletedUser.cocktails },
       });
     } else {
       req.session.message = 'You do not have access to delete this user';
-      console.log(req.session.message);
+      // console.log(req.session.message);
       res.json({
-        status: 500,
+        status: 404,
         deleted: false,
         user: null,
       });
@@ -170,7 +170,7 @@ router.post('/register', showMessagesAndUsername, async (req, res) => {
     geoData.country_code = 'US';
     geoData.postal_code = '80205';
   }
-  console.log(`CREATE/REGISTER user route hit: ${geoData.ip}, ${geoData.city}, ${geoData.district}, ${geoData.postal_code}`);
+  // console.log(`CREATE/REGISTER user route hit: ${geoData.ip}, ${geoData.city}, ${geoData.district}, ${geoData.postal_code}`);
 
   try {
     const foundUser = await User.findOne({ sP_id: req.body.sP_id }).populate('cocktails');
@@ -197,11 +197,11 @@ router.post('/register', showMessagesAndUsername, async (req, res) => {
       res.json({
         status: 200,
         loggedIn: true,
-        data: createdUser,
+        data: { _id: createdUser._id, sP_id: createdUser.sP_id, cocktails: createdUser.cocktails },
       });
     } else {
       req.session.message = 'This username/id is already taken. Please try again.';
-      console.log(req.session.message);
+      // console.log(req.session.message);
       res.json({
         status: 404,
         loggedIn: false,
@@ -244,7 +244,7 @@ router.post('/login', showMessagesAndUsername, async (req, res) => {
     geoData.country_code = 'US';
     geoData.postal_code = '80205';
   }
-  console.log(`LOGIN user route hit: ${geoData.ip}, ${geoData.city}, ${geoData.district}, ${geoData.postal_code}`);
+  // console.log(`LOGIN user route hit: ${geoData.ip}, ${geoData.city}, ${geoData.district}, ${geoData.postal_code}`);
 
   try {
     const foundUser = await User.findOne({ sP_id: req.body.id }).populate('cocktails');
@@ -253,15 +253,15 @@ router.post('/login', showMessagesAndUsername, async (req, res) => {
       req.session.logged = true;
       req.session.sP_id = req.body.id;
       req.session.userDbId = foundUser._id;
-      console.log(req.session, 'successful login');
+      // console.log(req.session, 'successful login');
       res.json({
         status: 200,
         loggedIn: true,
-        data: foundUser,
+        data: { _id: foundUser._id, sP_id: foundUser.sP_id, cocktails: foundUser.cocktails },
       });
     } else {
       req.session.message = 'User not found in backend. Please try again.';
-      console.log(req.session.message);
+      // console.log(req.session.message);
       res.json({
         status: 404,
         loggedIn: false,
@@ -278,29 +278,22 @@ router.post('/login', showMessagesAndUsername, async (req, res) => {
 
 // LOGOUT route
 router.get('/logout', (req, res) => {
-  console.log('LOGOUT user route hit');
+  // console.log('LOGOUT user route hit');
 
-  try {
-    req.session.destroy((err) => {
-      if (err) {
-        res.json({
-          status: 500,
-          data: err,
-        });
-      } else {
-        res.json({
-          status: 200,
-          loggedIn: false,
-          data: true,
-        });
-      }
-    });
-  } catch (err) {
-    res.json({
-      status: 500,
-      data: err,
-    });
-  }
+  req.session.destroy((err) => {
+    if (err) {
+      res.json({
+        status: 500,
+        data: err,
+      });
+    } else {
+      res.json({
+        status: 200,
+        loggedIn: false,
+        data: true,
+      });
+    }
+  });
 });
 
 // FIND route
@@ -320,13 +313,13 @@ router.post('/find', requireLogin, async (req, res) => {
     geoData.country_code = 'USs';
     geoData.postal_code = '80205';
   }
-  console.log(`FIND user route hit: ${geoData.ip}, ${geoData.city}, ${geoData.district}, ${geoData.postal_code}`);
+  // console.log(`FIND user route hit: ${geoData.ip}, ${geoData.city}, ${geoData.district}, ${geoData.postal_code}`);
 
   try {
     const foundUser = await User.find({ sP_id: req.body }).populate('cocktails');
     res.json({
       status: 200,
-      data: foundUser,
+      data: { _id: foundUser._id, sP_id: foundUser.sP_id, cocktails: foundUser.cocktails },
     });
   } catch (err) {
     res.json({

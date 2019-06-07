@@ -106,24 +106,24 @@ class App extends Component {
       newUser: null,
       updatedUser: null,
     };
-    this.getCurrentlyPlaying = this.getCurrentlyPlaying.bind(this);
-    this.previousTrack = this.previousTrack.bind(this);
-    this.nextTrack = this.nextTrack.bind(this);
-    this.playTrack = this.playTrack.bind(this);
-    this.pauseTrack = this.pauseTrack.bind(this);
-    // this.toggleNav = this.toggleNav.bind(this);
-    // this.toggleJS = this.toggleJS.bind(this);
+    // this.getCurrentlyPlaying = this.getCurrentlyPlaying.bind(this);
+    // this.previousTrack = this.previousTrack.bind(this);
+    // this.nextTrack = this.nextTrack.bind(this);
+    // this.playTrack = this.playTrack.bind(this);
+    // this.pauseTrack = this.pauseTrack.bind(this);
   }
   
   playOnDevice = async (newDeviceId) => {
     await spotifyApi.transferMyPlayback([newDeviceId])
     .then(async (response) => {
-      console.log(response, ': response');
       await this.setState({
         deviceId: response.device,
         response: response,
       });
-      this.setDeviceName();
+      await this.setDeviceName();
+      await this.getCurrentlyPlaying();
+      await setTimeout(await this.setDeviceName, 200);
+      await setTimeout(await this.getCurrentlyPlaying, 200);
     }).catch((err) => {
       console.log(`${err} in the spotify playOnDevice ext API lib call`);
     });
@@ -134,7 +134,7 @@ class App extends Component {
     await spotifyApi.getMyDevices()
     .then(async (response) => {
       await this.setState({
-        allDeviceIds: await response.devices,
+        allDeviceIds: response.devices,
       });
     }).catch((err) => {
       console.log(`${err} in the spotify getDeviceIds ext API lib call`);
@@ -150,23 +150,14 @@ class App extends Component {
 
     if (this.state.allDeviceIds && !this.state.deviceId) {
       await this.setState({
-        deviceId: await this.state.allDeviceIds[0].id,
+        deviceId: this.state.allDeviceIds[0].id,
       });
     }
 
     let locDevice = await this.state.allDeviceIds.filter((aDevice) => aDevice.id === this.state.deviceId)
     await this.setState ({
-      deviceName: await locDevice[0].name
+      deviceName: locDevice[0].name
     });
-    // this.state.allDeviceIds.forEach((aDevice) => {
-    //   if (aDevice.id === this.state.deviceId) {
-    //     this.setState ({
-    //       deviceName: aDevice.name
-    //     });
-    //   }
-    // });
-    
-    // console.log(this.state.deviceName, "deviceName");
   }
 
   // Once react page is loaded/mounted after redirect from spotify login,
@@ -192,7 +183,7 @@ class App extends Component {
       // search backend Users for logged in Spotify user for saving cocktails
       const loggedUser = await this.loginUser();
       if (!loggedUser) {
-        console.log(`No corresponding user found for Spotify user: ${this.state.sPUser.display_name}`);
+        // console.log(`No corresponding user found for Spotify user: ${this.state.sPUser.id}`);
         // create newUser in backend using sPUser data in state
         const newUser = await this.createUser();
         if (!newUser) {
@@ -210,7 +201,7 @@ class App extends Component {
         // get initial cocktail for currentlyPlaying artist on page load.
         await this.handleSubmit(null, this.state.nowPlaying.artists[0].name);
 
-        this.setState({
+        await this.setState({
           isPlaying: true,
         })
       }
@@ -262,7 +253,7 @@ class App extends Component {
     try {
       parsedResponse = await response.json();
     } catch (err) {
-      console.log(`Unable to access nowPlaying/device data onDidMount: ${err}`);
+      console.log(`Unable to parse response in getNewCocktail: ${err}`);
     }
 
     if(parsedResponse.status === 200){
@@ -273,7 +264,7 @@ class App extends Component {
       // }
 
       await this.setState({
-          cocktail: await parsedResponse,
+          cocktail: parsedResponse,
           artist: ""
       });
     }
@@ -297,7 +288,7 @@ class App extends Component {
     //   formArtist  = this.state.nowPlaying.artists[0].name;
     // }
 
-    console.log(formArtist, ': formArtist from handleSubmit');
+    // console.log(formArtist, ': formArtist from handleSubmit');
 
     await this.getNewCocktail(formArtist);
   }
@@ -309,7 +300,7 @@ class App extends Component {
     await this.setDeviceName();
     // sync with Spotify and getCurrentlyPlaying state
     await this.getCurrentlyPlaying();
-    console.log(this.state.nowPlaying.artists[0].name, ': nowPlaying.artist in syncNewTrack');
+    // console.log(this.state.nowPlaying.artists[0].name, ': nowPlaying.artist in syncNewTrack');
     // sync with Spotify and get new cocktail state
     await this.handleSubmit(null, this.state.nowPlaying.artists[0].name);
   }
@@ -331,23 +322,29 @@ class App extends Component {
     clearInterval(this.interval);
 
     await spotifyApi.getMyCurrentPlaybackState()
-      .then( async(response) => {
+      .then(async (response) => {
         if (response.item.artists) {
           await this.setState({
-            response: await response,
-            nowPlaying: await response.item,
-            deviceId: await response.device.id,
-            isPlaying: await response.is_playing,
-            progress_ms: await response.progress_ms, 
+            response: response,
+            nowPlaying: response.item,
+            deviceId: response.device.id,
+            isPlaying: response.is_playing,
+            progress_ms: response.progress_ms, 
           });
         }
+      }).finally(async () => {
+          // start interval time to update the progress_bar in PlayerComp if track isPlaying
+          if (this.state.isPlaying) {
+            this.interval = setInterval(await this.setTrackProgress, 250);
+          } else {
+            clearInterval(this.interval);
+          }
       }).catch((err) => {
         console.log(`${err} in the spotify getCurrentlyPlaying ext API lib call`);
       }
     );
 
-    // start interval time to update the progress_bar in PlayerComp
-    this.interval = setInterval(await this.setTrackProgress, 250);
+
   }
 
   // Make a call to the spotify ext API from getArtistResults
@@ -355,8 +352,8 @@ class App extends Component {
     await spotifyApi.searchArtists(searchTerm)
       .then(async (response) => {
         await this.setState({
-          artistResults: await response.artists.items,
-          response: await response
+          artistResults: response.artists.items,
+          response: response
         });
       }).catch((err) => {
         console.log(`${err} in the spotify searchArtists ext API lib call`);
@@ -369,8 +366,8 @@ class App extends Component {
     await spotifyApi.getArtist(artistId)
       .then(async (response) => {
         await this.setState({
-          artistDetails: await response.artist,
-          response: await response
+          artistDetails: response.artist,
+          response: response
         });
       }).catch((err) => {
         console.log(`${err} in the spotify getArtistDetails ext API lib call`);
@@ -383,8 +380,8 @@ class App extends Component {
     await spotifyApi.getAudioFeaturesForTrack(this.state.nowPlaying.id)
       .then(async (response) => {
         await this.setState({
-          trackFeatures: await response.track,
-          response: await response
+          trackFeatures: response.track,
+          response: response
         });
       }).catch((err) => {
         console.log(`${err} in the spotify getTrackFeatures ext API lib call`);
@@ -397,16 +394,18 @@ class App extends Component {
     clearInterval(this.interval);
     await spotifyApi.skipToPrevious()
       .then(async (response) => {
+        await this.setState({
+          response: response,
+        });
         // update setDeviceName for PlayerComp to current nowPlaying device
         await this.setDeviceName();
         await setTimeout(await this.getCurrentlyPlaying, 200);
+      }).finally((err) => {
+        console.log(`${err} in the spotify previousTrack ext API lib call`);
       }).catch((err) => {
         console.log(`${err} in the spotify previousTrack ext API lib call`);
       }
     );
-    this.pauseTrack();
-    this.playOnDevice(this.state.allDeviceIds[1].id);
-    this.playTrack();
   }
 
    // Make a call to the spotify ext API from nextTrack
@@ -414,6 +413,9 @@ class App extends Component {
     clearInterval(this.interval);
     await spotifyApi.skipToNext()
       .then(async (response) => {
+        await this.setState({
+          response: response,
+        });
         // update setDeviceName for PlayerComp to current nowPlaying device
         await this.setDeviceName();
         await setTimeout(await this.getCurrentlyPlaying, 200);
@@ -428,12 +430,13 @@ class App extends Component {
     clearInterval(this.interval);
     await spotifyApi.pause()
       .then(async (response) => {
+        await this.setState({
+          response: response,
+          isPlaying: false,
+        });
         // update setDeviceName for PlayerComp to current nowPlaying device
         await this.setDeviceName();
         await this.getCurrentlyPlaying();
-        await this.setState({
-          isPlaying: false,
-        });
       }).catch((err) => {
         console.log(`${err} in the spotify pauseTrack ext API lib call`);
         clearInterval(this.interval);
@@ -449,10 +452,6 @@ class App extends Component {
     // update setDeviceName for PlayerComp to current nowPlaying device
     await this.setDeviceName();
 
-    // if (!this.state.deviceId) {
-    //   await this.getDeviceIds();
-    // }
-
     if (!this.state.deviceId && this.allDeviceIds) {
       await this.setState({
         deviceId: this.allDeviceIds[0].id
@@ -464,6 +463,7 @@ class App extends Component {
         .then(async (response) => {
           await this.setState({
             isPlaying: true,
+            response: response,
           });
         }).catch((err) => {
           console.log(`${err} in the spotify playTrack ext API lib call`);
@@ -473,6 +473,7 @@ class App extends Component {
       .then(async (response) => {
         await this.setState({
           isPlaying: true,
+          response: response,
         });
       }).catch((err) => {
         console.log(`${err} in the spotify playTrack ext API lib call`);
@@ -482,6 +483,7 @@ class App extends Component {
         .then(async (response) => {
           await this.setState({
             isPlaying: true,
+            response: response,
           });
         }).catch((err) => {
           console.log(`${err} in the spotify playTrack ext API lib call`);
@@ -498,9 +500,9 @@ class App extends Component {
   getMe = async () => {
     await spotifyApi.getMe()
     .then(async (response) => {
-      console.log(response, "sPUser")
+      // console.log(response, "sPUser")
       await this.setState({
-        sPUser: await response,
+        sPUser: response,
       });
     }).catch((err) => {
       console.log(`${err} in the spotify getDeviceIds ext API lib call`);
@@ -524,16 +526,14 @@ class App extends Component {
     })
     const parsedResponse = await newCocktail.json();
     if(parsedResponse.status === 200){
-      console.log(`Cocktail with _id:${parsedResponse.data._id} was created`);
-      alert(`Cocktail with _id:${parsedResponse.data._id} was created`);
+      // console.log(`Cocktail with _id:${parsedResponse.data._id} was created`);
       await this.setState({
-          newCocktail: await parsedResponse.data
+          newCocktail: parsedResponse.data
       }, ()=>{
           this.state.history.push("/cocktails")
       })
     } else {
       console.log('The Cocktail creation was unsuccessful');
-      alert('The Cocktail creation was unsuccessful');
     }
   }
 
@@ -548,9 +548,9 @@ class App extends Component {
     })
     const parsedResponse = await updatedCocktail.json();
     if(parsedResponse.status === 200){
-      console.log(`Cocktail with _id:${parsedResponse.data._id} was updated`);
+      //console.log(`Cocktail with _id:${parsedResponse.data._id} was updated`);
         await this.setState({
-            updatedCocktail: await parsedResponse.data
+            updatedCocktail: parsedResponse.data
         }, ()=>{
             this.state.history.push("/cocktails")
         })
@@ -566,11 +566,9 @@ class App extends Component {
         credentials: 'include'
       });
       if (deletedCocktail.status === 200) {
-        console.log(`Cocktail with _id:${this.state.cocktail.data._id} was deleted`);
-        alert(`Cocktail with _id:${this.state.cocktail.data._id} was deleted`);
+        //console.log(`Cocktail with _id:${this.state.cocktail.data._id} was deleted`);
       } else {
-        console.log('The Cocktail delete was unsuccessful');
-        alert('The Cocktail delete was unsuccessful');
+        //console.log('The Cocktail delete was unsuccessful');
       }
     } catch(err) {
       console.log(err);
@@ -587,10 +585,10 @@ class App extends Component {
     try {
       const dbUser = {};
       if (this.state.sPUser) {
-        dbUser.name = this.state.sPUser.display_name;
+        dbUser.display_name = this.state.sPUser.display_name;
         dbUser.sP_id = this.state.sPUser.id;
-        dbUser.email = this.state.sPUser.email;
-        dbUser.birthdate = this.state.sPUser.birthdate;
+        // dbUser.email = this.state.sPUser.email;
+        // dbUser.birthdate = this.state.sPUser.birthdate;
         dbUser.country = this.state.sPUser.country;
       } else {
         console.log('No sPUser data found in state in createUser');
@@ -607,10 +605,10 @@ class App extends Component {
       });
       const parsedResponse = await createdUser.json();
       if(parsedResponse.status === 200){
-        console.log(`User with _id:${parsedResponse.data._id} was created`);
+        // console.log(`User with _id:${parsedResponse.data._id} was created`);
         await this.setState({
-            newUser: await parsedResponse.data,
-            curUser: await parsedResponse.data
+            newUser: parsedResponse.data,
+            curUser: parsedResponse.data
         }, ()=>{
             this.state.history.push("/users")
         })
@@ -637,9 +635,9 @@ class App extends Component {
         })
         const parsedResponse = await loginUser.json();
         if(parsedResponse.status === 200){
-          console.log(`User with _id:${parsedResponse.data._id} was logged in`);
+          // console.log(`User with _id:${parsedResponse.data._id} was logged in`);
           await this.setState({
-            curUser: await parsedResponse.data
+            curUser: parsedResponse.data
           }, ()=>{
             this.state.history.push("/users")
           })
@@ -668,17 +666,15 @@ class App extends Component {
       })
       const parsedResponse = await updatedUser.json();
       if(parsedResponse.status === 200){
-        console.log(`User with _id:${parsedResponse.data._id} was updated`);
-        alert(`User with _id:${parsedResponse.data._id} was updated`);
+        //console.log(`User with _id:${parsedResponse.data._id} was updated`);
           await this.setState({
-              updatedUser: await parsedResponse.data
+              updatedUser: parsedResponse.data
           }, ()=>{
               this.state.history.push("/users")
           })
           return parsedResponse.data;
       } else {
         console.log('The User update was unsuccessful');
-        alert('The User update was unsuccessful');
         return null;
       }
     } catch (err) {
@@ -710,18 +706,13 @@ class App extends Component {
       //   e.target.setAttribute("src", "/images/GreyWhiteStar.png");
       // }
 
-      console.log(this.state.curUser, ": user before added cocktail");
-
       // const cocktailIndex = this.cocktailIndexOf(this.state.curUser.cocktails, argCocktail);
-      console.log(this.state.curUser.cocktails.filter((cocktail) => cocktail._id === argCocktail._id).length, ": filteredCocktailLength");
       if(this.state.curUser.cocktails.filter((cocktail) => cocktail._id === argCocktail._id).length > 0) {
         this.state.curUser.cocktails = this.state.curUser.cocktails.filter((cocktail) => cocktail._id !== argCocktail._id);
         e.target.setAttribute("src", "/images/GreyWhiteStar.png");
-        console.log(this.state.curUser, ": user after removing cocktail");
       } else {
         e.target.setAttribute("src", "/images/GreenWhiteStar.png");
         this.state.curUser.cocktails = [...this.state.curUser.cocktails, argCocktail];
-        console.log(this.state.curUser, ": user after adding cocktail");
       }
 
       const updatedUser = await fetch(`${process.env.REACT_APP_BACKEND_ADDRESS}/api/v1/users/${this.state.curUser._id}`, {
@@ -734,17 +725,17 @@ class App extends Component {
       })
       const parsedResponse = await updatedUser.json();
       if(parsedResponse.status === 200){
-        console.log(`User with _id:${parsedResponse.data._id} was modified to add/remove cocktail _id: ${this.state.cocktail.data._id}`);
+        //console.log(`User with _id:${parsedResponse.data._id} was modified to add/remove cocktail _id: ${this.state.cocktail.data._id}`);
           // await this.updateCocktail(argCocktail);
           await this.setState({
-              updatedUser: await parsedResponse.data,
-              curUser: await parsedResponse.data
+              updatedUser: parsedResponse.data,
+              curUser: parsedResponse.data
           }, ()=>{
               this.state.history.push("/users")
           })
           return parsedResponse.data;
       } else {
-        console.log('The User Cocktail update was unsuccessful');
+        console.log('The User cocktail update was unsuccessful');
         return null;
       }
     } catch (err) {
@@ -759,11 +750,11 @@ class App extends Component {
         credentials: 'include'
       });
       if (deletedUser.status === 200) {
-        console.log(`User with _id:${this.state.curUser._id} was deleted`);
+        //console.log(`User with _id:${this.state.curUser._id} was deleted`);
         alert(`User with _id:${this.state.curUser._id} was deleted`);
         return deletedUser;
       } else {
-        console.log('The User delete was unsuccessful');
+        //console.log('The User delete was unsuccessful');
         alert('The User delete was unsuccessful');
         return null;
       }
@@ -833,6 +824,7 @@ class App extends Component {
                 playTrack={this.playTrack}
                 currDeviceName={this.state.deviceName}
                 devices={this.state.allDeviceIds}
+                playOnDevice={this.playOnDevice}
               />
               {/* <Script
                 url="https://sdk.scdn.co/spotify-player.js" 
@@ -865,9 +857,9 @@ class App extends Component {
                 <div className="favoriteBtnDiv">
                   {(this.state.curUser.cocktails.filter((cocktail) => cocktail._id === this.state.cocktail.data._id).length > 0) ? 
                   (
-                    <img alt="favoriteButton" title="Click to Favorite this drink" className="favoriteBtn" id={this.state.cocktail.data._id} src="/images/GreenWhiteStar.png" onClick={(e) => {e.preventDefault(); this.updateUserCocktails(e, this.state.cocktail.data); }}/>
+                    <img alt="favoriteButton" title="Click to Favorite this cocktail" className="favoriteBtn" id={this.state.cocktail.data._id} src="/images/GreenWhiteStar.png" onClick={(e) => {e.preventDefault(); this.updateUserCocktails(e, this.state.cocktail.data); }}/>
                   ) : (
-                    <img alt="favoriteButton" title="Click to Favorite this drink" className="favoriteBtn" id={this.state.cocktail.data._id} src="/images/GreyWhiteStar.png" onClick={(e) => {e.preventDefault(); this.updateUserCocktails(e, this.state.cocktail.data); }}/>
+                    <img alt="favoriteButton" title="Click to Favorite this cocktail" className="favoriteBtn" id={this.state.cocktail.data._id} src="/images/GreyWhiteStar.png" onClick={(e) => {e.preventDefault(); this.updateUserCocktails(e, this.state.cocktail.data); }}/>
                   )}
                 </div>
                 <CocktailComp className="clearfix"
@@ -892,7 +884,7 @@ class App extends Component {
                       <strong className="normal-text">{cocktail.name}</strong>
                     </div>
                     <div className="favoriteBtnDiv">
-                      <img alt="favoriteButton" title="Click to Unfavorite this drink" className="favoriteBtn" id={cocktail._id} src="/images/GreenWhiteStar.png" onClick={(e) => {e.preventDefault(); this.updateUserCocktails(e, cocktail); }}/>
+                      <img alt="favoriteButton" title="Click to Unfavorite this cocktail" className="favoriteBtn" id={cocktail._id} src="/images/GreenWhiteStar.png" onClick={(e) => {e.preventDefault(); this.updateUserCocktails(e, cocktail); }}/>
                     </div>
                     <CocktailComp className="clearfix"
                       key={cocktail._id}
@@ -939,8 +931,8 @@ class App extends Component {
         <footer>
           <div>
             Sit back, savor your cocktail, and enjoy the tunes.<br/>
-            Please drink responsibly and in moderation.<br/>
-            Drinking problem? Call 1-800-662-HELP (4357)
+            Drinking problem? Call 1-800-662-HELP (4357)<br/>
+            Please drink responsibly.
           </div>
         </footer>
       </div>

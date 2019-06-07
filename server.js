@@ -32,7 +32,7 @@ require('./db/db');
 // });
 
 // // set up middleware
-app.use(morgan('short'));
+// app.use(morgan('short'));
 // app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 
@@ -43,15 +43,15 @@ app.use(session({
   resave: false,
   // store: store,
   cookie: {
-    maxAge: 1000 * 60 * 60 * 24 * 7 // 1 week
+    maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
   },
 }));
 
-// debugging userId from session in console ***REMOVE FOR PROD***
-app.use((req, res, next)=>{
-  console.log(`Incoming request from UserId: ${req.session.userId}`)
-  next();
-});
+// // debugging userId from session in console ***REMOVE FOR PROD***
+// app.use((req, res, next) => {
+//   console.log(`Incoming request from UserId: ${req.session.userDbId}`);
+//   next();
+// });
 
 // // require the controllers
 const userController = require('./controllers/userController');
