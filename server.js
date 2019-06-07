@@ -19,8 +19,8 @@ app.use(cors({
   optionsSuccessStatus: 200,
 }));
 
-// // Use 'path' for Big Repo deployment
-// app.use(express.static(path.join(__dirname, 'client/build')));
+// Use 'path' for Big Repo deployment
+app.use(express.static(path.join(__dirname, 'client/build')));
 
 // require mongo db connection
 require('./db/db');
