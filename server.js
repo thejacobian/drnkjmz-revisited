@@ -5,7 +5,7 @@ const app = express();
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const session = require('express-session');
-const morgan = require('morgan');
+// const morgan = require('morgan');
 // const MongoDBStore = require('connect-mongodb-session')(session);
 const path = require('path');
 
