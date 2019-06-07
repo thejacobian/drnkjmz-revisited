@@ -62,10 +62,10 @@ app.use('/api/v1/users', userController);
 app.use('/api/v1/cocktails', cocktailController);
 
 
-// // Handles any requests that don't match the ones above
-// app.get('*', (req, res) => {
-//   res.sendFile(path.join(`${__dirname}/client/build/index.html`));
-// });
+// Handles any requests that don't match the ones above
+app.get('*', (req, res) => {
+  res.sendFile(path.join(`${__dirname}/client/build/index.html`));
+});
 
 app.listen(process.env.PORT || 27018, () => {
   console.log(`Listening on port: ${process.env.PORT}`);
