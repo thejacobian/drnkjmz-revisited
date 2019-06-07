@@ -4,10 +4,12 @@ class EditCocktail extends Component{
   constructor(props){
     super(props);
     this.state = {
-        name: this.props.cocktailName,
-        directions: this.props.cocktailDirections,
-        img: this.props.cocktailImg,
-        genres: this.props.cocktailGenres[0],
+        cId: this.props.cocktailToEdit.cId,
+        _id: this.props.cocktailToEdit._id,
+        name: this.props.cocktailToEdit.name,
+        directions: this.props.cocktailToEdit.directions,
+        img: this.props.cocktailToEdit.img,
+        genres: this.props.cocktailToEdit.genres[0],
     }
   }
   
@@ -29,10 +31,10 @@ class EditCocktail extends Component{
 
     return <form onSubmit={this.handleSubmit}>
             <p className="normal-text">Edit Cocktail</p>
-            Name: <input type="text" name="name" defaultValue={this.props.cocktailName} onChange={this.handleChange}/><br/>
-            Directions: <textarea type="text" name="directions" defaultValue={this.props.cocktailDirections} onChange={this.handleChange}/><br/>
-            Image Url: <input type="text" name="img" defaultValue={this.props.cocktailImg} onChange={this.handleChange}/><br/>
-            Genres: <input type="text" name="genres" defaultValue={this.props.cocktailGenres[0]} onChange={this.handleChange}/><br/>
+            Name: <input type="text" name="name" defaultValue={this.props.cocktailToEdit.name} onChange={this.handleChange}/><br/>
+            Directions: <textarea type="text" name="directions" defaultValue={this.props.cocktailToEdit.directions} onChange={this.handleChange}/><br/>
+            ImgUrl: <input type="text" name="img" defaultValue={this.props.cocktailToEdit.img} onChange={this.handleChange}/><br/>
+            Genres: <input type="text" name="genres" defaultValue={this.props.cocktailToEdit.genres[0]} onChange={this.handleChange}/><br/>
             <button className="btn btn-non-controls" type="submit">SUBMIT</button>
             <div className="background" style={backgroundStyles} />{" "}
           </form>

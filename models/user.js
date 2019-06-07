@@ -2,13 +2,15 @@ const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
   sP_id: { type: String, required: true, unique: true },
-  username: String,
+  // username: String,
   // password: { type: String, required: true },
+  name: String,
   email: String,
   birthdate: String,
   city: String,
   state: String,
   country: String,
+  country_code: String,
   postal_code: String,
   ip: String,
   cocktails: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Cocktail' }],

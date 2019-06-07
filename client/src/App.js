@@ -6,22 +6,23 @@ import {
   FormGroup,
   Input,
   Navbar,
-  NavbarToggler,
+  /*NavbarToggler,*/
   NavbarBrand,
   Nav,
   NavItem,
   NavLink,
-  RouteNavItem,
+  /*RouteNavItem,*/
  } from "reactstrap";
 import PlayerComp from "./PlayerComp/PlayerComp";
 import CocktailComp from "./CocktailComp/CocktailComp";
 import EditCocktail from "./EditCocktail/EditCocktail";
 import NewCocktail from "./NewCocktail/NewCocktail";
-import logo from "./mstile-150x150.png";
+// import logo from "/images/blackLogo.png";
 import "./App.css";
 // import SpotifyPlayer from "react-spotify-player";
 // import Script from "react-load-script"
 import SpotifyWebApi from "spotify-web-api-js";
+// import { Cookies } from 'react-cookie';
 
 require('dotenv').config()
 
@@ -114,6 +115,20 @@ class App extends Component {
     // this.toggleJS = this.toggleJS.bind(this);
   }
   
+  playOnDevice = async (newDeviceId) => {
+    await spotifyApi.transferMyPlayback([newDeviceId])
+    .then(async (response) => {
+      console.log(response, ': response');
+      await this.setState({
+        deviceId: response.device,
+        response: response,
+      });
+      this.setDeviceName();
+    }).catch((err) => {
+      console.log(`${err} in the spotify playOnDevice ext API lib call`);
+    });
+  }
+
   // Make a call to the spotify ext API from getDeviceIds
   getDeviceIds = async () => {
     await spotifyApi.getMyDevices()
@@ -128,6 +143,7 @@ class App extends Component {
 
   // helper function to set this.state.deviceName
   setDeviceName = async () => {
+    clearInterval(this.interval);
 
     // get the user deviceIds
     await this.getDeviceIds();
@@ -156,6 +172,7 @@ class App extends Component {
   // Once react page is loaded/mounted after redirect from spotify login,
   // save token in state and in spotifyApi helper library
   componentDidMount = async () => {
+    clearInterval(this.interval);
     // Set token from hash
     let _token = hash.access_token;
 
@@ -181,8 +198,6 @@ class App extends Component {
         if (!newUser) {
           console.log ('User creation request to backend failed')
         }
-      } else {
-        console.log ('User login request to backend was successful')
       }
 
       // get the user deviceName
@@ -213,16 +228,17 @@ class App extends Component {
     })
   }
 
-  findCocktailImage = async (cId) => {
-    try{
-      const searchURL = `https://www.thecocktaildb.com/api/json/v1/1/lookup.php?i=${cId}`;
-      const result = await fetch(searchURL);
-      const parsedResult = await result.json();
-      return parsedResult.drinks[0].strDrinkThumb;
-    } catch(err) {
-      console.log(`${err} in the cocktailDB ext API call`);
-    }
-  }
+  // // findCocktailImage from ext API call to TheCocktailDB
+  // findCocktailImage = async (cId) => {
+  //   try{
+  //     const searchURL = `https://www.thecocktaildb.com/api/json/v1/1/lookup.php?i=${cId}`;
+  //     const result = await fetch(searchURL);
+  //     const parsedResult = await result.json();
+  //     return parsedResult.drinks[0].strDrinkThumb;
+  //   } catch(err) {
+  //     console.log(`${err} in the cocktailDB ext API call`);
+  //   }
+  // }
 
   getNewCocktail = async (formArtist) => {
     // hack in case artistResults has not been found yet from Spotify API
@@ -251,10 +267,10 @@ class App extends Component {
 
     if(parsedResponse.status === 200){
   
-      // set the cocktail.img with API call to cocktailsDB
-      if (!parsedResponse.data.img) {
-          parsedResponse.data.img = await this.findCocktailImage(parsedResponse.data.cId);
-      }
+      // // set the cocktail.img with API call to cocktailsDB
+      // if (!parsedResponse.data.img) {
+      //     parsedResponse.data.img = await this.findCocktailImage(parsedResponse.data.cId);
+      // }
 
       await this.setState({
           cocktail: await parsedResponse,
@@ -264,6 +280,7 @@ class App extends Component {
   }
   
   handleSubmit = async (e, formArtist) => {
+    clearInterval(this.interval);
 
     await this.searchArtists(formArtist);
 
@@ -286,6 +303,8 @@ class App extends Component {
   }
 
   syncNewTrack = async () => {
+    clearInterval(this.interval);
+
     // update setDeviceName for PlayerComp to current nowPlaying device
     await this.setDeviceName();
     // sync with Spotify and getCurrentlyPlaying state
@@ -375,6 +394,7 @@ class App extends Component {
 
   // Make a call to the spotify ext API from previousTrack
   previousTrack = async () => {
+    clearInterval(this.interval);
     await spotifyApi.skipToPrevious()
       .then(async (response) => {
         // update setDeviceName for PlayerComp to current nowPlaying device
@@ -384,10 +404,14 @@ class App extends Component {
         console.log(`${err} in the spotify previousTrack ext API lib call`);
       }
     );
+    this.pauseTrack();
+    this.playOnDevice(this.state.allDeviceIds[1].id);
+    this.playTrack();
   }
 
    // Make a call to the spotify ext API from nextTrack
    nextTrack = async () => {
+    clearInterval(this.interval);
     await spotifyApi.skipToNext()
       .then(async (response) => {
         // update setDeviceName for PlayerComp to current nowPlaying device
@@ -401,6 +425,7 @@ class App extends Component {
 
   // Make a call to the spotify ext API from pauseTrack
   pauseTrack = async () => {
+    clearInterval(this.interval);
     await spotifyApi.pause()
       .then(async (response) => {
         // update setDeviceName for PlayerComp to current nowPlaying device
@@ -419,6 +444,7 @@ class App extends Component {
 
   // Make a call to the spotify ext API from playTrack
   playTrack = async (uri) => {
+    clearInterval(this.interval);
 
     // update setDeviceName for PlayerComp to current nowPlaying device
     await this.setDeviceName();
@@ -511,13 +537,11 @@ class App extends Component {
     }
   }
 
-  updateCocktail = async (formData) => {
-    formData.cId = this.state.cocktail.data.cId;
-    formData._id = this.state.cocktail.data._id;
+  updateCocktail = async (cocktail) => {
     const updatedCocktail = await fetch(`${process.env.REACT_APP_BACKEND_ADDRESS}/api/v1/cocktails`, {
       credentials: 'include',
       method: "PUT",
-      body: JSON.stringify(formData),
+      body: JSON.stringify(cocktail),
       headers: {
           "Content-Type": 'application/json'
       }
@@ -525,7 +549,6 @@ class App extends Component {
     const parsedResponse = await updatedCocktail.json();
     if(parsedResponse.status === 200){
       console.log(`Cocktail with _id:${parsedResponse.data._id} was updated`);
-      alert(`Cocktail with _id:${parsedResponse.data._id} was updated`);
         await this.setState({
             updatedCocktail: await parsedResponse.data
         }, ()=>{
@@ -533,7 +556,6 @@ class App extends Component {
         })
     } else {
       console.log('The Cocktail update was unsuccessful');
-      alert('The Cocktail update was unsuccessful');
     }
   }
 
@@ -555,17 +577,6 @@ class App extends Component {
     }
   }
 
-  favoriteCocktail = async (e) => {
-
-    // toggle the color of the favoriteBtn image
-    if (e.target.getAttribute("src") === "/images/GreyWhiteStar.png") {
-      e.target.setAttribute("src", "/images/GreenWhiteStar.png");
-    } else {
-      e.target.setAttribute("src", "/images/GreyWhiteStar.png");
-    }
-
-  }
-
   toggleNav() {
     this.setState({
       isOpen: !this.state.isOpen
@@ -576,7 +587,7 @@ class App extends Component {
     try {
       const dbUser = {};
       if (this.state.sPUser) {
-        dbUser.username = this.state.sPUser.display_name;
+        dbUser.name = this.state.sPUser.display_name;
         dbUser.sP_id = this.state.sPUser.id;
         dbUser.email = this.state.sPUser.email;
         dbUser.birthdate = this.state.sPUser.birthdate;
@@ -596,13 +607,14 @@ class App extends Component {
       });
       const parsedResponse = await createdUser.json();
       if(parsedResponse.status === 200){
-        console.log(`User with _id:${parsedResponse.user._id} was created`);
+        console.log(`User with _id:${parsedResponse.data._id} was created`);
         await this.setState({
-            newUser: await parsedResponse.user
+            newUser: await parsedResponse.data,
+            curUser: await parsedResponse.data
         }, ()=>{
             this.state.history.push("/users")
         })
-        return parsedResponse.user;
+        return parsedResponse.data;
       } else {
         console.log('The User creation was unsuccessful');
         return null;
@@ -620,18 +632,18 @@ class App extends Component {
           method: "POST",
           body: JSON.stringify(this.state.sPUser),
           headers: {
-              "Content-Type": 'application/json'
+            "Content-Type": 'application/json'
           }
         })
         const parsedResponse = await loginUser.json();
         if(parsedResponse.status === 200){
-          console.log(`User with _id:${parsedResponse.user._id} was logged in`);
+          console.log(`User with _id:${parsedResponse.data._id} was logged in`);
           await this.setState({
-              curUser: await parsedResponse.user
+            curUser: await parsedResponse.data
           }, ()=>{
-              this.state.history.push("/users")
+            this.state.history.push("/users")
           })
-          return parsedResponse.user;
+          return this.state.curUser;
         } else {
           console.log('The User login was unsuccessful');
           return null;
@@ -656,14 +668,14 @@ class App extends Component {
       })
       const parsedResponse = await updatedUser.json();
       if(parsedResponse.status === 200){
-        console.log(`User with _id:${parsedResponse.user._id} was updated`);
-        alert(`User with _id:${parsedResponse.user._id} was updated`);
+        console.log(`User with _id:${parsedResponse.data._id} was updated`);
+        alert(`User with _id:${parsedResponse.data._id} was updated`);
           await this.setState({
-              updatedUser: await parsedResponse.user
+              updatedUser: await parsedResponse.data
           }, ()=>{
               this.state.history.push("/users")
           })
-          return parsedResponse.user;
+          return parsedResponse.data;
       } else {
         console.log('The User update was unsuccessful');
         alert('The User update was unsuccessful');
@@ -674,15 +686,81 @@ class App extends Component {
     }
   }
 
+  // // helper function to see if cocktail has been favorited before
+  // cocktailIndexOf = (cocktailArr, cocktail) => {
+  //   let index = -1;
+  //   cocktailArr.forEach((drink) => {
+  //     index++;
+  //     if (drink._id.toString() === cocktail._id.toString()) {
+  //       console.log(index, drink._id, cocktail._id);
+  //       return index;
+  //     }
+  //   });
+  //   return index;
+  // }
+
+  // favorites or un-favorites a cocktail for a particular user in state/DB
+  updateUserCocktails =  async (e, argCocktail) => {
+    try {
+
+      // // toggle the color of the favoriteBtn image
+      // if (e.target.getAttribute("src") === "/images/GreyWhiteStar.png") {
+      //   e.target.setAttribute("src", "/images/GreenWhiteStar.png");
+      // } else {
+      //   e.target.setAttribute("src", "/images/GreyWhiteStar.png");
+      // }
+
+      console.log(this.state.curUser, ": user before added cocktail");
+
+      // const cocktailIndex = this.cocktailIndexOf(this.state.curUser.cocktails, argCocktail);
+      console.log(this.state.curUser.cocktails.filter((cocktail) => cocktail._id === argCocktail._id).length, ": filteredCocktailLength");
+      if(this.state.curUser.cocktails.filter((cocktail) => cocktail._id === argCocktail._id).length > 0) {
+        this.state.curUser.cocktails = this.state.curUser.cocktails.filter((cocktail) => cocktail._id !== argCocktail._id);
+        e.target.setAttribute("src", "/images/GreyWhiteStar.png");
+        console.log(this.state.curUser, ": user after removing cocktail");
+      } else {
+        e.target.setAttribute("src", "/images/GreenWhiteStar.png");
+        this.state.curUser.cocktails = [...this.state.curUser.cocktails, argCocktail];
+        console.log(this.state.curUser, ": user after adding cocktail");
+      }
+
+      const updatedUser = await fetch(`${process.env.REACT_APP_BACKEND_ADDRESS}/api/v1/users/${this.state.curUser._id}`, {
+        credentials: 'include',
+        method: "PUT",
+        body: JSON.stringify(this.state.curUser),
+        headers: {
+            "Content-Type": 'application/json'
+        }
+      })
+      const parsedResponse = await updatedUser.json();
+      if(parsedResponse.status === 200){
+        console.log(`User with _id:${parsedResponse.data._id} was modified to add/remove cocktail _id: ${this.state.cocktail.data._id}`);
+          // await this.updateCocktail(argCocktail);
+          await this.setState({
+              updatedUser: await parsedResponse.data,
+              curUser: await parsedResponse.data
+          }, ()=>{
+              this.state.history.push("/users")
+          })
+          return parsedResponse.data;
+      } else {
+        console.log('The User Cocktail update was unsuccessful');
+        return null;
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
   deleteUser = async () => {
     try {
-      const deletedUser = await fetch(`${process.env.REACT_APP_BACKEND_ADDRESS}/api/v1/users/${this.state.user.data._id}`, {
+      const deletedUser = await fetch(`${process.env.REACT_APP_BACKEND_ADDRESS}/api/v1/users/${this.state.curUser._id}`, {
         method: 'DELETE',
         credentials: 'include'
       });
       if (deletedUser.status === 200) {
-        console.log(`User with _id:${this.state.user.data._id} was deleted`);
-        alert(`User with _id:${this.state.user.data._id} was deleted`);
+        console.log(`User with _id:${this.state.curUser._id} was deleted`);
+        alert(`User with _id:${this.state.curUser._id} was deleted`);
         return deletedUser;
       } else {
         console.log('The User delete was unsuccessful');
@@ -703,12 +781,14 @@ class App extends Component {
   // const view = 'list'; // or 'coverart'
   // const theme = 'black'; // or 'white'
 
+  // console.log("render attempt occurred");
+
     return (
       <div className="App">
 
         <Navbar color="light" light expand="md">
-        <NavbarToggler onClick={this.toggleNav} />
-          <NavbarBrand href="/"><img width="32px" src="/images/favicon-32x32.png" alt=""/> DRNKJMZ</NavbarBrand>
+        {/* <NavbarToggler onClick={this.toggleNav} /> */}
+          <NavbarBrand href="/"><img width="32px" src="/images/transparentLogo.png" alt=""/> DRNKJMZ</NavbarBrand>
             <Form id="search-submit" className="form-inline my-2 my-lg-0" action="/search" onSubmit={(e) => {e.preventDefault(); this.handleSubmit(null, this.state.artist); }}>
               <FormGroup id="search-form-group">
                 <Input className="form-control mr-sm-2" type="search" name="artist" id="artistSearch" onChange={this.handleChange} placeholder={this.state.token ? "Search for Artists here" : "Login with Spotify to Search"}/>
@@ -730,20 +810,20 @@ class App extends Component {
           {!this.state.token ? (
             <div>
               <h3>Welcome to DRNKJMZ</h3>
-              <p className="normal-text">An app that links to your <img className="smSpotifyLogo" src="/images/Spotify_Logo_RGB_Green.png"/> account to recommend the perfect cocktail for your listening experience!</p>
-              <img src={logo} alt="logo"/><br/>
+              <img className="App-logo" src="/images/blackLogo.png" alt="logo"/><br/><br/><br/>
+              <p className="normal-text">An app that links to your <img className="smSpotifyLogo" src="/images/Spotify_Logo_RGB_Green.png" alt="smSpotifyLogo" /> account to recommend the perfect cocktail for your listening experience!</p><br/>
               <a id="login-btn" className="btn btn-non-controls"
                 href={`${sPAuthEndpoint}?client_id=${sPClientId}&redirect_uri=${sPRedirectUri}&scope=${sPScopes.join("%20")}&response_type=token&show_dialog=true`}
               >Login With Spotify</a><br/><br/>
             </div>
           ) : (
             <div>
-              <h3>Successfully linked to <img className="lgSpotifyLogo" src="/images/Spotify_Logo_RGB_Green.png"/>!</h3>
+              <h3>Successfully linked to <img className="lgSpotifyLogo" src="/images/Spotify_Logo_RGB_Green.png" alt="lgSpotifyLogo"/></h3>
               <p className="normal-text">Either use the buttons below to control playback or search for a new Artist above.</p>
             </div>
           )}
 
-          {this.state.token && this.state.nowPlaying.artists[0].name && this.state.deviceName && (
+          {this.state.token && this.state.nowPlaying.artists[0].name && this.state.allDeviceIds && this.state.deviceName && (
             <div className="player-info">
               <PlayerComp
                 nowPlaying={this.state.nowPlaying}
@@ -752,6 +832,7 @@ class App extends Component {
                 pauseTrack={this.pauseTrack}
                 playTrack={this.playTrack}
                 currDeviceName={this.state.deviceName}
+                devices={this.state.allDeviceIds}
               />
               {/* <Script
                 url="https://sdk.scdn.co/spotify-player.js" 
@@ -772,27 +853,65 @@ class App extends Component {
             </div>
           )}
 
-          {this.state.token && this.state.cocktail && (
-            <div>
-              <div id="cocktailPairingDiv">
+          {this.state.token && this.state.nowPlaying && this.state.cocktail && this.state.curUser && (
+            <div id="curCocktailDivGroup">
+              <div>
                 <p className="normal-text">A perfect cocktail pairing for {this.state.artistResults !== null ? this.state.artistResults[0].name : 'the Artist'} has been recommended below...</p>
               </div>
-              <div id="favoriteBtnDiv">
-                <img alt="likeButton" title="Click to Favorite this drink" id="favoriteBtn" src="/images/GreyWhiteStar.png" onClick={(e) => {e.preventDefault(); this.favoriteCocktail(e); }}/>
+              <div>
+                <div className="cocktailPairingDiv">
+                  <strong className="normal-text">{this.state.cocktail.data.name}</strong>
+                </div>
+                <div className="favoriteBtnDiv">
+                  {(this.state.curUser.cocktails.filter((cocktail) => cocktail._id === this.state.cocktail.data._id).length > 0) ? 
+                  (
+                    <img alt="favoriteButton" title="Click to Favorite this drink" className="favoriteBtn" id={this.state.cocktail.data._id} src="/images/GreenWhiteStar.png" onClick={(e) => {e.preventDefault(); this.updateUserCocktails(e, this.state.cocktail.data); }}/>
+                  ) : (
+                    <img alt="favoriteButton" title="Click to Favorite this drink" className="favoriteBtn" id={this.state.cocktail.data._id} src="/images/GreyWhiteStar.png" onClick={(e) => {e.preventDefault(); this.updateUserCocktails(e, this.state.cocktail.data); }}/>
+                  )}
+                </div>
+                <CocktailComp className="clearfix"
+                  nowPlaying={this.state.nowPlaying}
+                  cocktailDirections={this.state.cocktail.data.directions}
+                  cocktailImg={this.state.cocktail.data.img}
+                />
+                <Button id="new-cocktail" className="btn btn-non-controls" onClick={(e) => {e.preventDefault(); this.handleSubmit(e, this.state.nowPlaying.artists[0].name)}}>Get New Cocktail</Button>
               </div>
-              <CocktailComp
-                nowPlaying={this.state.nowPlaying}
-                cocktailDirections={this.state.cocktail.data.directions}
-                cocktailImg={this.state.cocktail.data.img}
-              />
-              <Button id="new-cocktail" className="btn btn-non-controls" onClick={(e) => {e.preventDefault(); this.handleSubmit(e, this.state.nowPlaying.artists[0].name)}}>Get New Cocktail</Button>
+            </div>
+          )}
+
+          {this.state.token && this.state.nowPlaying && this.state.cocktail && this.state.curUser.cocktails && (
+            <div>
+              <div>
+                <p className="normal-text">Your previously favorited cocktails are below...</p>
+              </div>
+              {this.state.curUser.cocktails.map((cocktail) => {
+                return(
+                  <div key={cocktail._id}>
+                    <div className="cocktailPairingDiv">
+                      <strong className="normal-text">{cocktail.name}</strong>
+                    </div>
+                    <div className="favoriteBtnDiv">
+                      <img alt="favoriteButton" title="Click to Unfavorite this drink" className="favoriteBtn" id={cocktail._id} src="/images/GreenWhiteStar.png" onClick={(e) => {e.preventDefault(); this.updateUserCocktails(e, cocktail); }}/>
+                    </div>
+                    <CocktailComp className="clearfix"
+                      key={cocktail._id}
+                      nowPlaying={this.state.nowPlaying}
+                      cocktailDirections={cocktail.directions}
+                      cocktailImg={cocktail.img}
+                    />
+                  </div>
+                )}
+              )}
+              <br/>
             </div>
           )}
           
           {!this.state.token && (
             <div>
               <br/>
-              <p className="normal-text">NOTE: If <img className="smSpotifyLogo" src="/images/Spotify_Logo_RGB_Green.png"/> is not already streaming, open the player at <a id="spotify-link" href="https://open.spotify.com/" target="_blank">https://open.spotify.com/</a> before clicking Login.</p>
+                <p className="normal-text">NOTE: If <img className="smSpotifyLogo" src="/images/Spotify_Logo_RGB_Green.png" alt="landSpotifyLogo" /> is not already streaming, please open the player at <a id="spotify-link" href="https://open.spotify.com/" target="_blank" rel="noopener noreferrer">https://open.spotify.com/</a> before clicking Login.</p>
+              <br/>
             </div>
           )}
 
@@ -801,12 +920,7 @@ class App extends Component {
               <p className="normal-text">Welcome Jake to Admin Mode</p>
               <EditCocktail
                nowPlaying={this.state.nowPlaying}
-               cocktailToEdit={this.state.cocktail}
-               cocktailName={this.state.cocktail.data.name}
-               cocktailDirections={this.state.cocktail.data.directions}
-               cocktailImg={this.state.cocktail.data.img}
-               cocktailGenres={this.state.cocktail.data.genres}
-               updateCocktail={this.updateCocktail}
+               cocktailToEdit={this.state.cocktail.data}
               />
               <Button id="delete-cocktail" className="btn btn-non-controls" onClick={(e) => {e.preventDefault(); this.deleteCocktail();}}>DELETE</Button>
               <NewCocktail
@@ -819,8 +933,16 @@ class App extends Component {
               />
             </div>
           )}
-        <button id="js" onClick={(e) => {e.preventDefault(); this.toggleJS();}}/>
+          <button id="js" onClick={(e) => {e.preventDefault(); this.toggleJS();}}/>
         </header>
+
+        <footer>
+          <div>
+            Sit back, savor your cocktail, and enjoy the tunes.<br/>
+            Please drink responsibly and in moderation.<br/>
+            Drinking problem? Call 1-800-662-HELP (4357)
+          </div>
+        </footer>
       </div>
     );
   }

@@ -1,17 +1,18 @@
+/* eslint-disable no-underscore-dangle */
 /* eslint-disable no-await-in-loop */
-/* eslint-disable no-prototype-builtins */
 /* eslint-disable no-restricted-syntax */
+/* eslint-disable no-prototype-builtins */
 const express = require('express');
+const request = require('request');
 
 const router = express.Router();
-// const User = require('../models/users');
 const Cocktail = require('../models/cocktail');
 
 // populate cocktails from DB import file
 const cocktailsData = require('../populateCocktails');
 
 // // add require login middleware
-// const requireLogin = require('../middleware/requireLogin');
+const requireLogin = require('../middleware/requireLogin');
 // const showMessagesAndUsername = require('../middleware/showSessionMessages');
 
 // Utility function from Stack Overflow to see if an object is empty
@@ -22,27 +23,36 @@ const isEmpty = (obj) => {
   return true;
 };
 
-const populateCocktailsFunc = (() => {
-  // Add the cocktails test data if the collection is empty
-  cocktailsData.forEach((cocktail) => {
-    Cocktail.create({
-      name: cocktail.name,
-      directions: cocktail.directions,
-      cId: cocktail.cId,
-      genres: [cocktail.genre],
-      img: '',
-    }, (err, createdCocktail) => {
-      if (err) {
-        console.log(err);
-      } else {
-        console.log(createdCocktail);
-      }
-    });
+// Add the cocktails test data if the collection is empty
+const populateCocktailsFunc = async () => {
+  cocktailsData.forEach(async (cocktail) => {
+    // get the images for the cocktails from an API call since we did not scrape these
+    await request(`https://www.thecocktaildb.com/api/json/v1/1/lookup.php?i=${cocktail.cId}`,
+      (error, response, body) => {
+        if (!error && response.statusCode === 200) {
+          const parsedBody = JSON.parse(body);
+          const imageUrl = parsedBody.drinks[0].strDrinkThumb;
+          // create the cocktails in our MongoDb.
+          Cocktail.create({
+            name: cocktail.name,
+            directions: cocktail.directions,
+            cId: cocktail.cId,
+            genres: [cocktail.genre],
+            img: imageUrl,
+          }, (err, createdCocktail) => {
+            if (err) {
+              console.log(err);
+            } else {
+              console.log(createdCocktail);
+            }
+          });
+        }
+      });
   });
-});
+};
 
 // INDEX ROUTE for debugging/admin purposes
-router.get('/', async (req, res) => {
+router.get('/getAllCocktails', async (req, res) => {
   try {
     const cocktails = await Cocktail.find({}).sort();
     if (isEmpty(cocktails)) {
@@ -61,40 +71,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// // NEW ROUTE
-// router.get('/new', async (req, res) => {
-//   try {
-//     const today = new Date().toISOString().substr(0, 10);
-//     res.render('cocktails/new.ejs', {
-//       todaysDate: today,
-//     });
-//   } catch (err) {
-//     console.log(err);
-//     res.send(err);
-//   }
-// });
-
-// // SHOW ROUTE
-// router.get('/:id', async (req, res) => {
-//   try {
-//     const thisCocktail = await Cocktail.findById(req.params.id);
-//     if (thisCocktail) {
-//       res.render('cocktails/show.ejs', {
-//         cocktail: thisCocktail,
-//       });
-//     } else {
-//       req.session.message = 'There is no cocktail data for this id';
-//       console.log(req.session.message);
-//       res.send(req.session.message);
-//     }
-//   } catch (err) {
-//     console.log(err);
-//     res.send(err);
-//   }
-// });
-
 // CREATE ROUTE
-router.post('/', async (req, res) => {
+router.post('/', requireLogin, async (req, res) => {
   try {
     // handle genres for new cocktail
     const temp = req.body.genres;
@@ -115,42 +93,27 @@ router.post('/', async (req, res) => {
   }
 });
 
-// // EDIT ROUTE
-// router.get('/:id/edit', async (req, res) => {
-//   try {
-//     const myCocktail = await Cocktail.findById(req.params.id);
-//     if (myCocktail) {
-//       // get the cocktails upload date and convert for display on edit page.
-//       const datePickerFormat = myCocktail.date.toISOString().substr(0, 10);
-//       res.render('cocktails/edit.ejs', {
-//         cocktail: myCocktail,
-//         datePickerFormat,
-//       });
-//     } else {
-//       req.session.message = 'There is no cocktail data for this id';
-//       console.log(req.session.message);
-//       res.send(req.session.message);
-//     }
-//   } catch (err) {
-//     console.log(err);
-//     res.send(err);
-//   }
-// });
-
 // UPDATE ROUTE
-router.put('/', async (req, res) => {
+router.put('/', requireLogin, async (req, res) => {
   try {
     // handle genres for new cocktail
-    const temp = req.body.genres;
-    req.body.genres = [];
-    req.body.genres.push(temp);
-
-    const updatedCocktail = await Cocktail.findByIdAndUpdate(req.body._id, req.body, { new: true });
-    await updatedCocktail.save();
-    res.json({
-      status: 200,
-      data: updatedCocktail,
-    });
+    // const temp = req.body.genres;
+    // req.body.genres = [];
+    // req.body.genres.push(temp);
+    if (req.session.sP_id === '5cf9d13919d9e0a353b8164c') {
+      const updatedCocktail = await Cocktail.findByIdAndUpdate(req.body._id, req.body, { new: true });
+      await updatedCocktail.save();
+      res.json({
+        status: 200,
+        data: updatedCocktail,
+      });
+    } else {
+      console.log('You do not have access to update cocktails');
+      res.json({
+        status: 500,
+        data: null,
+      });
+    }
   } catch (err) {
     console.log(err);
     res.json({
@@ -161,14 +124,21 @@ router.put('/', async (req, res) => {
 });
 
 // DELETE ROUTE
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireLogin, async (req, res) => {
   try {
-    const deletedCocktail = await Cocktail.findByIdAndDelete(req.params.id);
-
-    res.json({
-      status: 200,
-      data: deletedCocktail,
-    });
+    if (req.session.sP_id === '5cf9d13919d9e0a353b8164c') {
+      const deletedCocktail = await Cocktail.findByIdAndDelete(req.params.id);
+      res.json({
+        status: 200,
+        data: deletedCocktail,
+      });
+    } else {
+      console.log('You do not have access to delete cocktails');
+      res.json({
+        status: 500,
+        data: null,
+      });
+    }
   } catch (err) {
     console.log(err);
     res.json({
@@ -220,7 +190,7 @@ router.post('/search', async (req, res) => {
     } else { // return one of the cocktails that is matching the genres
       randomCocktailIndex = Math.floor(Math.random() * allMatchingCocktails.length);
       matchingCocktail = allMatchingCocktails[randomCocktailIndex];
-      console.log(`Returning a random matching cocktail: ${matchingCocktail}`);
+      console.log(`Returning a matching cocktail: ${matchingCocktail}`);
     }
 
     res.json({

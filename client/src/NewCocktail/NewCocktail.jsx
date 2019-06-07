@@ -31,7 +31,7 @@ class NewCocktail extends Component{
             <p className="normal-text">Create Cocktail</p>
             Name: <input type="text" name="name" onChange={this.handleChange}/><br/>
             Directions: <textarea type="text" defaultValue="Ingredients: Instructions: "name="directions" onChange={this.handleChange}/><br/>
-            Image Url: <input type="text" name="img" onChange={this.handleChange}/><br/>
+            ImgUrl: <input type="text" name="img" onChange={this.handleChange}/><br/>
             Genres: <input type="text" name="genres" onChange={this.handleChange}/><br/>
             <button className="btn btn-non-controls" type="submit">SUBMIT</button>
             <div className="background" style={backgroundStyles} />{" "}

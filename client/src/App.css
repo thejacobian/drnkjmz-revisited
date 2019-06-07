@@ -7,6 +7,7 @@
   pointer-events: none;
   /* border: 0.2em solid rgb(0,196,85);
   border-radius: 2em; */
+  width: 150px;
 }
 
 .App-header {
@@ -44,10 +45,39 @@ html, body {
 }
 
 body {
-  background-color: #333;
+  background-color: rgba(0,0,0,1);
   color: #eee;
   font-family: Helvetica, Arial;
   font-size: 3vmin;
+}
+
+footer {
+  background-color: rgba(0,0,0,1) !important;
+  color: #eee !important;
+  font-family: Helvetica, Arial !important;
+  font-size: calc(10px + 2vmin) !important;
+  border-top: 2px solid #eee !important;
+  padding: 2vw !important;
+  max-width: 100% !important;
+}
+
+/* hr {
+  height: 2px !important;
+  background-color: #eee !important;
+} */
+
+textarea {
+  height: 40vw !important;
+  width: 40vw !important;
+  font-size: 2vw !important;
+  vertical-align:text-top !important;
+  margin-right: 5vw !important; 
+}
+
+input {
+  width: 40vw !important;
+  font-size: 2vw !important;
+  vertical-align:text-top !important;
 }
 
 .hidden {
@@ -69,6 +99,7 @@ body {
   text-decoration: none !important;
   font-weight: 700 !important;
   min-height: 50px !important;
+  outline: none;
 }
 
 .btn-non-controls {
@@ -97,20 +128,26 @@ body {
   font-weight: 700 !important;
 }
 
-#favoriteBtn {
-  width: 9vw;
-}
-
-#cocktailPairingDiv {
-  padding: 2vw;
-  padding-left: 10vw;
-  width: 74vw;
-  float: left;
-}
-
-#favoriteBtnDiv {
+.favoriteBtnDiv {
   padding: 2vw;
   padding-right: 5vw;
+  /* float:right; */
+}
+
+.favoriteBtn {
+  width: 8vw;
+}
+
+.cocktailPairingDiv {
+  position: relative;
+  padding: 5vw 0 0 20vw;
+  width: 47vw;
+  float: left;
+  text-align: center;
+}
+
+#curCocktailDivGroup {
+  width: 100% !important;
 }
 
 #navlink-login-btn {
@@ -218,6 +255,10 @@ body {
 
 /** Navbar Styling **/
 
+NavbarBrand {
+  vertical-align: bottom;
+}
+
 #artistSearch {
   min-width: 34vh !important;
   display: inline !important;
@@ -266,11 +307,11 @@ h3 {
   width: 45%;
 }
 
-/* .clearfix::after {
+.clearfix::after {
   content: "";
   clear: both;
   display: table;
-} */
+}
 
 /** Cocktail Admin Panel **/
 
@@ -291,7 +332,7 @@ h3 {
 
 /** Media Queries **/
 
-@media (max-width: 767px) {
+@media (max-width: 865px) {
   .btn-non-controls {
     font-size: calc(15px + 1vw) !important;
   }
@@ -306,7 +347,7 @@ h3 {
     margin-bottom: 0 !important;
   }
 
-  #nav-login-btn {
+  #navlink-login-btn {
     display: none !important;
   }
 }

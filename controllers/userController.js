@@ -1,26 +1,23 @@
 /* eslint-disable prefer-template */
 /* eslint-disable no-underscore-dangle */
 const express = require('express');
-const bcrypt = require('bcryptjs');
+// const bcrypt = require('bcryptjs');
 const fetch = require('node-fetch');
 
 const router = express.Router();
 const User = require('../models/user');
-// const Cocktail = require('../models/cocktail');
+const Cocktail = require('../models/cocktail');
 
 // require login middleware
 const requireLogin = require('../middleware/requireLogin');
 const showMessagesAndUsername = require('../middleware/showSessionMessages');
 
-let ipAddress = '';
-let city = '';
-let state = '';
-let countryCode = '';
+let geoData = { ip: '::1' };
 
 // adapted from Stack Overflow for basic geolocation detection
 const getClientLocationFromIP = async () => {
   try {
-    const request = `https://json.geoiplookup.io/${ipAddress}`;
+    const request = `https://json.geoiplookup.io/${geoData.ip}`;
     const result = await fetch(request);
     const parsedResult = await result.json();
     console.log(parsedResult);
@@ -32,192 +29,151 @@ const getClientLocationFromIP = async () => {
 };
 
 // INDEX route
-router.get('/', /*requireLogin,*/ async (req, res) => {
+router.get('/getAllUsers', async (req, res) => {
+  console.log('INDEX user route hit');
   try {
-
-    // get the User's IP address from the HTTP request X-Forwarded-For header (from Stack Overflow)
-    ipAddress = req.headers['x-forwarded-for']
-      || req.connection.remoteAddress
-      || req.socket.remoteAddress
-      || (req.connection.socket ? req.connection.socket.remoteAddress : null);
-    if (ipAddress === '::1') {
-      ipAddress = '63.149.97.94';
-      city = 'Denver';
-      state = 'CO';
-      countryCode = 'US';
-    } else {
-      getClientLocationFromIP();
-    }
-
-    console.log(`INDEX route hit: ${ipAddress}, ${city}, ${state}, ${countryCode}`);
-    res.send(`INDEX route hit: ${ipAddress}, ${city}, ${state}, ${countryCode}`);
-    
-    const thisUsersDbId = req.session.usersDbId;
-    const users = await User.find({});
+    const users = await User.find({}).populate('cocktails');
     res.json({
       status: 200,
-      users: users,
-      currentUser: thisUsersDbId
+      data: users,
     });
   } catch (err) {
-    res.json(err);
+    res.json({
+      status: 500,
+      data: err,
+    });
   }
 });
 
 // SHOW route
-router.get('/:id', /*requireLogin,*/ async (req, res) => {
-  // get the User's IP address from the HTTP request X-Forwarded-For header (from Stack Overflow)
-  ipAddress = req.headers['x-forwarded-for']
-    || req.connection.remoteAddress
-    || req.socket.remoteAddress
-    || (req.connection.socket ? req.connection.socket.remoteAddress : null);
-  if (ipAddress) {
-    getClientLocationFromIP();
-  }
+router.get('/:id', requireLogin, async (req, res) => {
+
+  console.log('SHOW user route hit');
 
   try {
-    const thisUsersDbId = req.session.usersDbId;
-    // if (req.params.id === thisUsersDbId) {
+    const thisUserDbId = req.session.userDbId;
+    if (req.params.id === thisUserDbId) {
       const foundUser = await User.findById(req.params.id).populate('cocktails');
-      // , populate: { path: 'cocktails' } });
-      // const allCocktails = await Cocktail.find({});
       res.json({
         status: 200,
-        user: foundUser,
-        currentUser: thisUsersDbId,
+        data: foundUser,
+        currentUser: thisUserDbId,
       });
-    // } else {
-    //   req.session.message = 'You do not have access to this user';
-    //   console.log(req.session.message);
-    //   res.json({
-    //     status: 500,
-    //     user: null,
-    //     currentUser: thisUsersDbId,
-    //   });
-    // }
+    } else {
+      req.session.message = 'You do not have access to this user';
+      console.log(req.session.message);
+      res.json({
+        status: 500,
+        data: null,
+        currentUser: thisUserDbId,
+      });
+    }
   } catch (err) {
-    res.json(err);
+    res.json({
+      status: 500,
+      data: err,
+    });
   }
 });
 
-// // EDIT route
-// router.get('/:id/edit', requireLogin, async (req, res) => {
-//   try {
-//     const thisUsersDbId = req.session.usersDbId;
-//     if (req.params.id === thisUsersDbId) {
-//       const foundUser = await User.findById(req.params.id);
-//       res.render('users/edit.ejs', {
-//         user: foundUser,
-//         currentUser: thisUsersDbId,
-//       });
-//     } else {
-//       req.session.message = 'You do not have access to this user';
-//       console.log(req.session.message);
-//       res.send(req.session.message);
-//     }
-//   } catch (err) {
-//     res.send(err);
-//   }
-// });
-
 // UPDATE route
-router.put('/:id', /*requireLogin,*/ async (req, res) => {
+router.put('/:id', requireLogin, async (req, res) => {
   // get the User's IP address from the HTTP request X-Forwarded-For header (from Stack Overflow)
-  ipAddress = req.headers['x-forwarded-for']
+  geoData.ip = req.headers['x-forwarded-for']
     || req.connection.remoteAddress
     || req.socket.remoteAddress
     || (req.connection.socket ? req.connection.socket.remoteAddress : null);
-  if (ipAddress) {
-    getClientLocationFromIP();
+  if (geoData.ip) {
+    geoData = await getClientLocationFromIP();
   }
+  if (geoData.ip === '::1') {
+    geoData.ip = '63.149.97.94';
+    geoData.city = 'Denver';
+    geoData.district = 'CO';
+    geoData.postal_code = '80205';
+  }
+  console.log(`UPDATE user route hit: ${geoData.ip}, ${geoData.city}, ${geoData.district}, ${geoData.postal_code}`);
 
   try {
-    // const thisUsersDbId = req.session.usersDbId;
-    // if (req.params.id === thisUsersDbId) {
+    const thisUserDbId = req.session.userDbId;
+    if (req.params.id === thisUserDbId || req.session.sP_id === '5cf9d13919d9e0a353b8164c') {
       // req.body.password = bcrypt.hashSync(req.body.password, bcrypt.genSaltSync(10));
-      const updatedUser = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
+      const updatedUser = await User.findByIdAndUpdate(req.params.id, req.body, { new: true }).populate('cocktails');
       res.json({
         status: 200,
-        user: updatedUser
+        data: updatedUser,
+        currentUser: thisUserDbId,
       });
-    // } else {
-    //   req.session.message = 'You do not have access to this user';
-    //   console.log(req.session.message);
-    //   res.send(req.session.message);
-    //   res.json({
-    //     status: 500,
-    //     user: null,
-    //   })
-    // }
+    } else {
+      req.session.message = 'You do not have access to update this user';
+      console.log(req.session.message);
+      res.send(req.session.message);
+      res.json({
+        status: 500,
+        user: null,
+        currentUser: thisUserDbId,
+      });
+    }
   } catch (err) {
-    res.json(err);
+    res.json({
+      status: 500,
+      data: err,
+    });
   }
 });
 
 // DELETE route
-router.delete('/:id', /*requireLogin,*/ async (req, res) => {
-  // get the User's IP address from the HTTP request X-Forwarded-For header (from Stack Overflow)
-  ipAddress = req.headers['x-forwarded-for']
-    || req.connection.remoteAddress
-    || req.socket.remoteAddress
-    || (req.connection.socket ? req.connection.socket.remoteAddress : null);
-  if (ipAddress) {
-    getClientLocationFromIP();
-  }
+router.delete('/:id', requireLogin, async (req, res) => {
+  console.log('DELETE user route hit');
 
   try {
-    // const thisUsersDbId = req.session.usersDbId;
-    // if (req.params.id === thisUsersDbId) {
+    const thisUserDbId = req.session.userDbId;
+    if (req.params.id === thisUserDbId || req.session.sP_Id === '5cf9d13919d9e0a353b8164c') {
       const deletedUser = await User.findByIdAndRemove(req.params.id);
       console.log(deletedUser);
       res.json({
         status: 200,
         deleted: true,
-        user: deletedUser,
+        data: deletedUser,
       });
-    // } else {
-    //   req.session.message = 'You do not have access to this user';
-    //   console.log(req.session.message);
-    //   res.json({
-    //     status: 500,
-    //     deleted: false,
-    //     user: null,
-    //   })
-    // }
+    } else {
+      req.session.message = 'You do not have access to delete this user';
+      console.log(req.session.message);
+      res.json({
+        status: 500,
+        deleted: false,
+        user: null,
+      });
+    }
   } catch (err) {
-    res.json(err);
+    res.json({
+      status: 500,
+      data: err,
+    });
   }
 });
 
-// // NEW/REGISTER route
-// router.get('/register', showMessagesAndUsername, (req, res) => {
-//   const thisUsersDbId = req.session.usersDbId;
-//   res.render('auth/register.ejs', {
-//     currentUser: thisUsersDbId,
-//     message: req.session.message,
-//   });
-// });
-
 // CREATE/REGISTER route
 router.post('/register', showMessagesAndUsername, async (req, res) => {
-  try {
-    // get the User's IP address from the HTTP request X-Forwarded-For header (from Stack Overflow)
-    let geoData;
-    ipAddress = req.headers['x-forwarded-for']
-      || req.connection.remoteAddress
-      || req.socket.remoteAddress
-      || (req.connection.socket ? req.connection.socket.remoteAddress : null);
-    if (ipAddress) {
-      geoData = await getClientLocationFromIP();
-    }
-    if (ipAddress === '::1') {
-      geoData.ip = '63.149.97.94';
-      geoData.city = 'Denver';
-      geoData.district = 'CO';
-      geoData.postal_code = '80205';
-    }
+  // get the User's IP address from the HTTP request X-Forwarded-For header (from Stack Overflow)
+  geoData.ip = req.headers['x-forwarded-for']
+    || req.connection.remoteAddress
+    || req.socket.remoteAddress
+    || (req.connection.socket ? req.connection.socket.remoteAddress : null);
+  if (geoData.ip) {
+    geoData = await getClientLocationFromIP();
+  }
+  if (geoData.ip === '::1') {
+    geoData.ip = '63.149.97.94';
+    geoData.city = 'Denver';
+    geoData.district = 'CO';
+    geoData.country_code = 'US';
+    geoData.postal_code = '80205';
+  }
+  console.log(`CREATE/REGISTER user route hit: ${geoData.ip}, ${geoData.city}, ${geoData.district}, ${geoData.postal_code}`);
 
-    const foundUser = await User.findOne({ sP_id: req.body.sP_id });
+  try {
+    const foundUser = await User.findOne({ sP_id: req.body.sP_id }).populate('cocktails');
     if (!foundUser) {
       // const { password } = req.body;
       // const passwordHash = bcrypt.hashSync(password, bcrypt.genSaltSync(10));
@@ -228,33 +184,41 @@ router.post('/register', showMessagesAndUsername, async (req, res) => {
         dbUser.city = geoData.city;
         dbUser.state = geoData.district;
         dbUser.postal_code = geoData.postal_code;
+        dbUser.country_code = geoData.country_code;
       }
 
       const createdUser = await User.create(dbUser);
+
+      req.session.message = '';
       req.session.logged = true;
-      req.session.usersDbId = createdUser._id;
+      req.session.userDbId = createdUser._id;
+      req.session.sP_id = createdUser.sP_id;
+
       res.json({
         status: 200,
         loggedIn: true,
-        user: createdUser,
+        data: createdUser,
       });
     } else {
       req.session.message = 'This username/id is already taken. Please try again.';
       console.log(req.session.message);
       res.json({
-        status: 500,
+        status: 404,
         loggedIn: false,
-        user: null,
+        data: null,
       });
     }
   } catch (err) {
-    res.json(err);
+    res.json({
+      status: 500,
+      data: err,
+    });
   }
 });
 
 // // helper function for login to show session messages
 // const renderLoginPage = async (req, res) => {
-//   const thisUsersDbId = req.session.usersDbId;
+//   const thisUsersDbId = req.session.userDbId;
 //   // const allCocktails = await Cocktail.find({}).sort([['count', -1]]);
 //   res.render('auth/login.ejs', {
 //     currentUser: thisUsersDbId,
@@ -263,106 +227,112 @@ router.post('/register', showMessagesAndUsername, async (req, res) => {
 //   });
 // };
 
-// // LOGIN GET route
-// router.get('/login', showMessagesAndUsername, async (req, res) => {
-//   try {
-//     renderLoginPage(req, res);
-//   } catch (err) {
-//     res.send(err);
-//   }
-// });
-
 // LOGIN POST route
 router.post('/login', showMessagesAndUsername, async (req, res) => {
   // get the User's IP address from the HTTP request X-Forwarded-For header (from Stack Overflow)
-  ipAddress = req.headers['x-forwarded-for']
+  geoData.ip = req.headers['x-forwarded-for']
     || req.connection.remoteAddress
     || req.socket.remoteAddress
     || (req.connection.socket ? req.connection.socket.remoteAddress : null);
-  if (ipAddress) {
-    getClientLocationFromIP();
+  if (geoData.ip) {
+    geoData = await getClientLocationFromIP();
   }
+  if (geoData.ip === '::1') {
+    geoData.ip = '63.149.97.94';
+    geoData.city = 'Denver';
+    geoData.district = 'CO';
+    geoData.country_code = 'US';
+    geoData.postal_code = '80205';
+  }
+  console.log(`LOGIN user route hit: ${geoData.ip}, ${geoData.city}, ${geoData.district}, ${geoData.postal_code}`);
 
   try {
-    const foundUser = await User.findOne({ sP_id: req.body.id });
+    const foundUser = await User.findOne({ sP_id: req.body.id }).populate('cocktails');
     if (foundUser) {
-      // if (bcrypt.compareSync(req.body.password, foundUser.password) === true) {
-        // console.log(req.body.password);
-        req.session.message = '';
-        req.session.logged = true;
-        req.session.sP_id = req.body.id;
-        req.session.usersDbId = foundUser._id;
-        console.log(req.session, 'successful login');
-        res.json({
-          status: 200,
-          loggedIn: true,
-          user: foundUser,
-        });
-      // } else {
-      //   req.session.message = 'Incorrect username or password. Please try again.';
-      //   console.log(req.session.message);
-      //   res.json({
-      //     status: 500,
-      //     user: null,
-      //     loggedIn: false
-      //   });
-      // }
+      req.session.message = '';
+      req.session.logged = true;
+      req.session.sP_id = req.body.id;
+      req.session.userDbId = foundUser._id;
+      console.log(req.session, 'successful login');
+      res.json({
+        status: 200,
+        loggedIn: true,
+        data: foundUser,
+      });
     } else {
-      req.session.message = 'Incorrect credentials. Please log in to Spotify again.';
+      req.session.message = 'User not found in backend. Please try again.';
       console.log(req.session.message);
       res.json({
-        status: 500,
+        status: 404,
         loggedIn: false,
-        user: null,
+        data: null,
       });
     }
   } catch (err) {
-    res.json(err);
+    res.json({
+      status: 500,
+      data: err,
+    });
   }
 });
 
 // LOGOUT route
 router.get('/logout', (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      res.json(err);
-    } else {
-      res.json({
-        status: 200,
-        loggedIn: false,
-      });
-    }
-  });
+  console.log('LOGOUT user route hit');
+
+  try {
+    req.session.destroy((err) => {
+      if (err) {
+        res.json({
+          status: 500,
+          data: err,
+        });
+      } else {
+        res.json({
+          status: 200,
+          loggedIn: false,
+          data: true,
+        });
+      }
+    });
+  } catch (err) {
+    res.json({
+      status: 500,
+      data: err,
+    });
+  }
 });
 
 // FIND route
-router.post('/find', /*requireLogin,*/ async (req, res) => {
+router.post('/find', requireLogin, async (req, res) => {
+  // get the User's IP address from the HTTP request X-Forwarded-For header (from Stack Overflow)
+  geoData.ip = req.headers['x-forwarded-for']
+    || req.connection.remoteAddress
+    || req.socket.remoteAddress
+    || (req.connection.socket ? req.connection.socket.remoteAddress : null);
+  if (geoData.ip) {
+    geoData = await getClientLocationFromIP();
+  }
+  if (geoData.ip === '::1') {
+    geoData.ip = '63.149.97.94';
+    geoData.city = 'Denver';
+    geoData.district = 'CO';
+    geoData.country_code = 'USs';
+    geoData.postal_code = '80205';
+  }
+  console.log(`FIND user route hit: ${geoData.ip}, ${geoData.city}, ${geoData.district}, ${geoData.postal_code}`);
+
   try {
-
-    // get the User's IP address from the HTTP request X-Forwarded-For header (from Stack Overflow)
-    ipAddress = req.headers['x-forwarded-for']
-      || req.connection.remoteAddress
-      || req.socket.remoteAddress
-      || (req.connection.socket ? req.connection.socket.remoteAddress : null);
-    if (ipAddress === '::1') {
-      ipAddress = '63.149.97.94';
-      city = 'Denver';
-      state = 'CO';
-      countryCode = 'US';
-    } else {
-      getClientLocationFromIP();
-    }
-
-    console.log(`INDEX route hit: ${ipAddress}, ${city}, ${state}, ${countryCode}`);
-
-    // const thisUsersDbId = req.session.usersDbId;
-    const foundUser = await User.find({ sP_id: req.body });
+    const foundUser = await User.find({ sP_id: req.body }).populate('cocktails');
     res.json({
       status: 200,
-      user: foundUser,
+      data: foundUser,
     });
   } catch (err) {
-    res.json(err);
+    res.json({
+      status: 500,
+      data: err,
+    });
   }
 });
 
