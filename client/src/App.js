@@ -283,6 +283,7 @@ class App extends Component {
     }
 
     await this.getCurrentlyPlaying();
+    await setTimeout(await this.getCurrentlyPlaying, 200);
 
     // if (formArtist = " ") {
     //   formArtist  = this.state.nowPlaying.artists[0].name;
