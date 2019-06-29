@@ -143,7 +143,7 @@ class App extends Component {
 
   // helper function to set this.state.deviceName
   setDeviceName = async () => {
-    clearInterval(this.interval);
+    //clearInterval(this.interval);
 
     // get the user deviceIds
     await this.getDeviceIds();
@@ -163,7 +163,7 @@ class App extends Component {
   // Once react page is loaded/mounted after redirect from spotify login,
   // save token in state and in spotifyApi helper library
   componentDidMount = async () => {
-    clearInterval(this.interval);
+    //clearInterval(this.interval);
     // Set token from hash
     let _token = hash.access_token;
 
@@ -210,7 +210,7 @@ class App extends Component {
 
   componentWillUnmount() {
     //clear the interval when unmounting the page to avoid memory leak
-    clearInterval(this.interval);
+    //clearInterval(this.interval);
   }
   
   handleChange = (e) => {
@@ -271,7 +271,7 @@ class App extends Component {
   }
   
   handleSubmit = async (e, formArtist) => {
-    clearInterval(this.interval);
+    //clearInterval(this.interval);
 
     await this.searchArtists(formArtist);
 
@@ -295,7 +295,7 @@ class App extends Component {
   }
 
   syncNewTrack = async () => {
-    clearInterval(this.interval);
+    //clearInterval(this.interval);
 
     // update setDeviceName for PlayerComp to current nowPlaying device
     await this.setDeviceName();
@@ -312,7 +312,7 @@ class App extends Component {
     });
 
     if (this.state.progress_ms > this.state.nowPlaying.duration_ms) {
-      clearInterval(this.interval);
+      //clearInterval(this.interval);
       //update currentlyPlaying with new track
       this.syncNewTrack();
     }
@@ -320,7 +320,7 @@ class App extends Component {
 
   // Make a call to the spotify ext API from getCurrentlyPlaying
   getCurrentlyPlaying = async () => {
-    clearInterval(this.interval);
+    //clearInterval(this.interval);
 
     await spotifyApi.getMyCurrentPlaybackState()
       .then(async (response) => {
@@ -334,12 +334,12 @@ class App extends Component {
           });
         }
       }).finally(async () => {
-          // start interval time to update the progress_bar in PlayerComp if track isPlaying
-          if (this.state.isPlaying) {
-            this.interval = setInterval(await this.setTrackProgress, 250);
-          } else {
-            clearInterval(this.interval);
-          }
+          // // start interval time to update the progress_bar in PlayerComp if track isPlaying
+          // if (this.state.isPlaying) {
+          //   this.interval = setInterval(await this.setTrackProgress, 250);
+          // } else {
+          //   clearInterval(this.interval);
+          // }
       }).catch((err) => {
         console.log(`${err} in the spotify getCurrentlyPlaying ext API lib call`);
       }
@@ -392,7 +392,7 @@ class App extends Component {
 
   // Make a call to the spotify ext API from previousTrack
   previousTrack = async () => {
-    clearInterval(this.interval);
+    //clearInterval(this.interval);
     await spotifyApi.skipToPrevious()
       .then(async (response) => {
         await this.setState({
@@ -411,7 +411,7 @@ class App extends Component {
 
    // Make a call to the spotify ext API from nextTrack
    nextTrack = async () => {
-    clearInterval(this.interval);
+    //clearInterval(this.interval);
     await spotifyApi.skipToNext()
       .then(async (response) => {
         await this.setState({
@@ -428,7 +428,7 @@ class App extends Component {
 
   // Make a call to the spotify ext API from pauseTrack
   pauseTrack = async () => {
-    clearInterval(this.interval);
+    //clearInterval(this.interval);
     await spotifyApi.pause()
       .then(async (response) => {
         await this.setState({
@@ -440,10 +440,10 @@ class App extends Component {
         await this.getCurrentlyPlaying();
       }).catch((err) => {
         console.log(`${err} in the spotify pauseTrack ext API lib call`);
-        clearInterval(this.interval);
+        //clearInterval(this.interval);
       }
     );
-    clearInterval(this.interval);
+    //clearInterval(this.interval);
   }
 
   // Make a call to the spotify ext API from playTrack

@@ -12,7 +12,7 @@ class PlayerComp extends Component{
   handleChange = (e) => {
     e.preventDefault();
     this.setState({
-        [e.target.name]: e.target.value
+      [e.target.name]: e.target.value
     }, ()=>{
       this.props.playOnDevice(this.state.deviceId);
     })
@@ -20,7 +20,7 @@ class PlayerComp extends Component{
   
   render () {
     const backgroundStyles = {
-        backgroundImage:`url(${this.props.nowPlaying.album.images[0].url})`,
+      backgroundImage:`url(${this.props.nowPlaying.album.images[0].url})`,
     };
 
     let progressBarStyles = {

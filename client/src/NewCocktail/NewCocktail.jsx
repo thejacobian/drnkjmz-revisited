@@ -4,16 +4,16 @@ class NewCocktail extends Component{
   constructor(){
     super();
     this.state = {
-        name: "",
-        directions: "",
-        img: "",
-        genres: "",
+      name: "",
+      directions: "",
+      img: "",
+      genres: "",
     }
   }
   
   handleChange = (e) => {
     this.setState({
-        [e.target.name]: e.target.value
+      [e.target.name]: e.target.value
     });
   }
 

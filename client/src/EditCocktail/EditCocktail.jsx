@@ -4,18 +4,18 @@ class EditCocktail extends Component{
   constructor(props){
     super(props);
     this.state = {
-        cId: this.props.cocktailToEdit.cId,
-        _id: this.props.cocktailToEdit._id,
-        name: this.props.cocktailToEdit.name,
-        directions: this.props.cocktailToEdit.directions,
-        img: this.props.cocktailToEdit.img,
-        genres: this.props.cocktailToEdit.genres[0],
+      cId: this.props.cocktailToEdit.cId,
+      _id: this.props.cocktailToEdit._id,
+      name: this.props.cocktailToEdit.name,
+      directions: this.props.cocktailToEdit.directions,
+      img: this.props.cocktailToEdit.img,
+      genres: this.props.cocktailToEdit.genres[0],
     }
   }
   
   handleChange = (e) => {
     this.setState({
-        [e.target.name]: e.target.value
+      [e.target.name]: e.target.value
     })
   }
 
