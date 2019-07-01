@@ -105,6 +105,8 @@ class App extends Component {
       curUser: null,
       newUser: null,
       updatedUser: null,
+      justSynced: false,
+      syncTimer: null,
     };
     // this.getCurrentlyPlaying = this.getCurrentlyPlaying.bind(this);
     // this.previousTrack = this.previousTrack.bind(this);
@@ -143,7 +145,7 @@ class App extends Component {
 
   // helper function to set this.state.deviceName
   setDeviceName = async () => {
-    //clearInterval(this.interval);
+    //clearInterval(this.state.syncTimer);
 
     // get the user deviceIds
     await this.getDeviceIds();
@@ -163,7 +165,7 @@ class App extends Component {
   // Once react page is loaded/mounted after redirect from spotify login,
   // save token in state and in spotifyApi helper library
   componentDidMount = async () => {
-    //clearInterval(this.interval);
+    //clearInterval(this.state.syncTimer);
     // Set token from hash
     let _token = hash.access_token;
 
@@ -210,7 +212,7 @@ class App extends Component {
 
   componentWillUnmount() {
     //clear the interval when unmounting the page to avoid memory leak
-    //clearInterval(this.interval);
+    //clearInterval(this.state.syncTimer);
   }
   
   handleChange = (e) => {
@@ -271,7 +273,7 @@ class App extends Component {
   }
   
   handleSubmit = async (e, formArtist) => {
-    //clearInterval(this.interval);
+    clearInterval(this.state.syncTimer);
 
     await this.searchArtists(formArtist);
 
@@ -295,24 +297,38 @@ class App extends Component {
   }
 
   syncNewTrack = async () => {
-    //clearInterval(this.interval);
+    clearInterval(this.state.syncTimer);
 
-    // update setDeviceName for PlayerComp to current nowPlaying device
-    await this.setDeviceName();
-    // sync with Spotify and getCurrentlyPlaying state
-    await this.getCurrentlyPlaying();
-    // console.log(this.state.nowPlaying.artists[0].name, ': nowPlaying.artist in syncNewTrack');
-    // sync with Spotify and get new cocktail state
-    await this.handleSubmit(null, this.state.nowPlaying.artists[0].name);
+    //only if it has been longer than 3 secs since last synced do we sync again
+    if (!this.state.justSynced) {
+      // update setDeviceName for PlayerComp to current nowPlaying device
+      await this.setDeviceName();
+      // sync with Spotify and getCurrentlyPlaying state
+      await this.getCurrentlyPlaying();
+      // console.log(this.state.nowPlaying.artists[0].name, ': nowPlaying.artist in syncNewTrack');
+      // sync with Spotify and get new cocktail state
+      await this.handleSubmit(null, this.state.nowPlaying.artists[0].name);
+
+      //set flag to true indicating a syncNewTrack event just occurred
+      await this.setState({
+        justSynced: true
+      });
+
+      //wait 3 seconds before allowing another sync API call
+      await setTimeout(
+        await this.setState({
+          justSynced: false
+        })
+      , 3000);
+    }
   }
 
   setTrackProgress = async () => {
     await this.setState({
-      progress_ms: this.state.progress_ms + 250
+      progress_ms: this.state.progress_ms + 500
     });
 
     if (this.state.progress_ms > this.state.nowPlaying.duration_ms) {
-      //clearInterval(this.interval);
       //update currentlyPlaying with new track
       this.syncNewTrack();
     }
@@ -320,7 +336,7 @@ class App extends Component {
 
   // Make a call to the spotify ext API from getCurrentlyPlaying
   getCurrentlyPlaying = async () => {
-    //clearInterval(this.interval);
+    clearInterval(this.state.syncTimer);
 
     await spotifyApi.getMyCurrentPlaybackState()
       .then(async (response) => {
@@ -334,12 +350,15 @@ class App extends Component {
           });
         }
       }).finally(async () => {
-          // // start interval time to update the progress_bar in PlayerComp if track isPlaying
-          // if (this.state.isPlaying) {
-          //   this.interval = setInterval(await this.setTrackProgress, 250);
-          // } else {
-          //   clearInterval(this.interval);
-          // }
+        clearInterval(this.state.syncTimer);
+          // start interval time to update the progress_bar in PlayerComp if track isPlaying
+          if (this.state.isPlaying) {
+            await this.setState({
+              syncTimer: setInterval(await this.setTrackProgress, 500)
+            })
+          } else {
+            clearInterval(this.state.syncTimer);
+          }
       }).catch((err) => {
         console.log(`${err} in the spotify getCurrentlyPlaying ext API lib call`);
       }
@@ -392,7 +411,7 @@ class App extends Component {
 
   // Make a call to the spotify ext API from previousTrack
   previousTrack = async () => {
-    //clearInterval(this.interval);
+    //clearInterval(this.state.syncTimer);
     await spotifyApi.skipToPrevious()
       .then(async (response) => {
         await this.setState({
@@ -411,7 +430,7 @@ class App extends Component {
 
    // Make a call to the spotify ext API from nextTrack
    nextTrack = async () => {
-    //clearInterval(this.interval);
+    //clearInterval(this.state.syncTimer);
     await spotifyApi.skipToNext()
       .then(async (response) => {
         await this.setState({
@@ -428,7 +447,7 @@ class App extends Component {
 
   // Make a call to the spotify ext API from pauseTrack
   pauseTrack = async () => {
-    //clearInterval(this.interval);
+    //clearInterval(this.state.syncTimer);
     await spotifyApi.pause()
       .then(async (response) => {
         await this.setState({
@@ -440,15 +459,15 @@ class App extends Component {
         await this.getCurrentlyPlaying();
       }).catch((err) => {
         console.log(`${err} in the spotify pauseTrack ext API lib call`);
-        //clearInterval(this.interval);
+        //clearInterval(this.state.syncTimer);
       }
     );
-    //clearInterval(this.interval);
+    //clearInterval(this.state.syncTimer);
   }
 
   // Make a call to the spotify ext API from playTrack
   playTrack = async (uri) => {
-    clearInterval(this.interval);
+    clearInterval(this.state.syncTimer);
 
     // update setDeviceName for PlayerComp to current nowPlaying device
     await this.setDeviceName();
