@@ -9,7 +9,7 @@ const router = express.Router();
 const Cocktail = require('../models/cocktail');
 
 // populate cocktails from DB import file
-const cocktailsData = require('../populateCocktails');
+const cocktailsData = require('../populateShowcaseCocktails');
 
 // // add require login middleware
 const requireLogin = require('../middleware/requireLogin');
@@ -26,28 +26,44 @@ const isEmpty = (obj) => {
 // Add the cocktails test data if the collection is empty
 const populateCocktailsFunc = async () => {
   cocktailsData.forEach(async (cocktail) => {
-    // get the images for the cocktails from an API call since we did not scrape these
-    await request(`https://www.thecocktaildb.com/api/json/v1/1/lookup.php?i=${cocktail.cId}`,
-      (error, response, body) => {
-        if (!error && response.statusCode === 200) {
-          const parsedBody = JSON.parse(body);
-          const imageUrl = parsedBody.drinks[0].strDrinkThumb;
-          // create the cocktails in our MongoDb.
-          Cocktail.create({
-            name: cocktail.name,
-            directions: cocktail.directions,
-            cId: cocktail.cId,
-            genres: [cocktail.genre],
-            img: imageUrl,
-          }, (err, createdCocktail) => {
-            if (err) {
-              console.log(err);
-            } else {
-              // console.log(createdCocktail);
-            }
-          });
-        }
-      });
+    // // get the images for the cocktails from an API call since we did not scrape these
+    // await request(`https://www.thecocktaildb.com/api/json/v1/1/lookup.php?i=${cocktail.cId}`,
+    //   (error, response, body) => {
+    //     if (!error && response.statusCode === 200) {
+    //       const parsedBody = JSON.parse(body);
+    //       const imageUrl = parsedBody.drinks[0].strDrinkThumb;
+    //       // create the cocktails in our MongoDb.
+    //       Cocktail.create({
+    //         name: cocktail.name,
+    //         directions: cocktail.directions,
+    //         cId: cocktail.cId,
+    //         genres: [cocktail.genre],
+    //         img: imageUrl,
+    //       }, (err, createdCocktail) => {
+    //         if (err) {
+    //           console.log(err);
+    //         } else {
+    //           // console.log(createdCocktail);
+    //         }
+    //       });
+    //     }
+    //   });
+
+    //Showcase modified cocktails DB
+    // create the cocktails in our MongoDb.
+    Cocktail.create({
+      name: cocktail.name,
+      directions: cocktail.directions,
+      cId: cocktail.cId,
+      genres: [cocktail.genre],
+      img: cocktail.img,
+    }, (err, createdCocktail) => {
+      if (err) {
+        console.log(err);
+      } else {
+        // console.log(createdCocktail);
+      }
+    });
   });
 };
 

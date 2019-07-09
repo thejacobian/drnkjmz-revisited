@@ -363,8 +363,6 @@ class App extends Component {
         console.log(`${err} in the spotify getCurrentlyPlaying ext API lib call`);
       }
     );
-
-
   }
 
   // Make a call to the spotify ext API from getArtistResults
@@ -868,7 +866,7 @@ class App extends Component {
           {this.state.token && this.state.nowPlaying && this.state.cocktail && this.state.curUser && (
             <div id="curCocktailDivGroup">
               <div>
-                <p className="normal-text">A perfect cocktail pairing for {this.state.artistResults !== null ? this.state.artistResults[0].name : 'the Artist'} has been recommended below...</p>
+                <p className="normal-text">A perfect cocktail pairing for {(this.state.artistResults !== null && this.state.nowPlaying !== null) ? this.state.nowPlaying.artists[0].name : 'the Artist'} has been recommended below...</p>
               </div>
               <div>
                 <div className="cocktailPairingDiv">
