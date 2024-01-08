@@ -76,6 +76,7 @@ class App extends Component {
   constructor() {
     super();
     this.state = {
+      isLoading: false,
       // player: null,
       token: null,
       artist: "",
@@ -221,19 +222,10 @@ class App extends Component {
     })
   }
 
-  // // findCocktailImage from ext API call to TheCocktailDB
-  // findCocktailImage = async (cId) => {
-  //   try{
-  //     const searchURL = `https://www.thecocktaildb.com/api/json/v1/1/lookup.php?i=${cId}`;
-  //     const result = await fetch(searchURL);
-  //     const parsedResult = await result.json();
-  //     return parsedResult.drinks[0].strDrinkThumb;
-  //   } catch(err) {
-  //     console.log(`${err} in the cocktailDB ext API call`);
-  //   }
-  // }
-
   getNewCocktail = async (formArtist) => {
+    this.setState({
+      isLoading: true
+    })
     // hack in case artistResults has not been found yet from Spotify API
     let cocktailGenres;
     if (this.state.artistResults)
@@ -259,13 +251,8 @@ class App extends Component {
     }
 
     if(parsedResponse.status === 200){
-  
-      // // set the cocktail.img with API call to cocktailsDB
-      // if (!parsedResponse.data.img) {
-      //     parsedResponse.data.img = await this.findCocktailImage(parsedResponse.data.cId);
-      // }
-
       await this.setState({
+          isLoading: false,
           cocktail: parsedResponse,
           artist: ""
       });
@@ -863,12 +850,13 @@ class App extends Component {
             </div>
           )}
 
-          {this.state.token && this.state.nowPlaying && this.state.cocktail && this.state.curUser && (
+          {this.state.token && this.state.cocktail && this.state.curUser && (
+          // {this.state.token && this.state.nowPlaying && this.state.cocktail && this.state.curUser && (
             <div id="curCocktailDivGroup">
               <div>
                 <p className="normal-text">A perfect cocktail pairing for {(this.state.artistResults !== null && this.state.nowPlaying !== null) ? this.state.nowPlaying.artists[0].name : 'the Artist'} has been recommended below...</p>
               </div>
-              <div>
+              {!this.state.isLoading && <div>
                 <div className="cocktailPairingDiv">
                   <strong className="normal-text">{this.state.cocktail.data.name}</strong>
                 </div>
@@ -881,16 +869,18 @@ class App extends Component {
                   )}
                 </div>
                 <CocktailComp className="clearfix"
-                  nowPlaying={this.state.nowPlaying}
+                  // nowPlaying={this.state.nowPlaying}
                   cocktailDirections={this.state.cocktail.data.directions}
                   cocktailImg={this.state.cocktail.data.img}
+                  cocktailId={this.state.cocktail.data.cId}
                 />
                 <Button id="new-cocktail" className="btn btn-non-controls" onClick={(e) => {e.preventDefault(); this.handleSubmit(e, this.state.nowPlaying.artists[0].name)}}>Get New Cocktail</Button>
-              </div>
+              </div>}
             </div>
           )}
 
           {this.state.token && this.state.nowPlaying && this.state.cocktail && this.state.curUser.cocktails && (
+          // {this.state.token && this.state.nowPlaying && this.state.cocktail && this.state.curUser.cocktails && (
             <div>
               <div>
                 <p className="normal-text">Your previously favorited cocktails are below...</p>
@@ -906,9 +896,10 @@ class App extends Component {
                     </div>
                     <CocktailComp className="clearfix"
                       key={cocktail._id}
-                      nowPlaying={this.state.nowPlaying}
+                      // nowPlaying={this.state.nowPlaying}
                       cocktailDirections={cocktail.directions}
                       cocktailImg={cocktail.img}
+                      cocktailId={cocktail.cId}
                     />
                   </div>
                 )}
