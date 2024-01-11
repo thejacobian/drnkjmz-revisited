@@ -5,8 +5,6 @@ const app = express();
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const session = require('express-session');
-// const morgan = require('morgan');
-// const MongoDBStore = require('connect-mongodb-session')(session);
 const path = require('path');
 
 // require dotenv for environment variables
@@ -25,15 +23,7 @@ app.use(express.static(path.join(__dirname, 'client/build')));
 // require mongo db connection
 require('./db/db');
 
-// // define mongo db store
-// const store = new MongoDBStore({
-//   uri: process.env.MONGODB_URI,
-//   collection: 'mySessions'
-// });
-
-// // set up middleware
-// app.use(morgan('short'));
-// app.use(bodyParser.urlencoded({extended: false}));
+// set up middleware
 app.use(bodyParser.json());
 
 // set up express-session
@@ -41,19 +31,12 @@ app.use(session({
   saveUninitialized: true,
   secret: process.env.SECRET,
   resave: false,
-  // store: store,
   cookie: {
     maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
   },
 }));
 
-// // debugging userId from session in console ***REMOVE FOR PROD***
-// app.use((req, res, next) => {
-//   console.log(`Incoming request from UserId: ${req.session.userDbId}`);
-//   next();
-// });
-
-// // require the controllers
+// require the controllers
 const userController = require('./controllers/userController');
 const cocktailController = require('./controllers/cocktailController');
 

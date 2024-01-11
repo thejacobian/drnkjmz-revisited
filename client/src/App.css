@@ -1,42 +1,6 @@
-.App {
-  text-align: center;
-}
-
-.App-logo {
-  /* height: 40vmin; */
-  pointer-events: none;
-  /* border: 0.2em solid rgb(0,196,85);
-  border-radius: 2em; */
-  width: 150px;
-}
-
-.App-header {
-  background-color: rgba(0,0,0,1);
-  /* background-color: #282c34; */
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
-
-.App-link {
-/* color: green !important; */
-}
-
-.smSpotifyLogo {
-  width: 17vw;
-}
-
-.lgSpotifyLogo {
-  width: 22vw;
-}
-
 * {
   box-sizing: border-box;
-  margin: 0;
+  margin: auto;
   padding: 0;
 }
 
@@ -61,10 +25,33 @@ footer {
   max-width: 100% !important;
 }
 
-/* hr {
-  height: 2px !important;
-  background-color: #eee !important;
-} */
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  pointer-events: none;
+  width: 150px;
+}
+
+.App-header {
+  background-color: rgba(0,0,0,1);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.smSpotifyLogo {
+  width: 17vw;
+}
+
+.lgSpotifyLogo {
+  width: 22vw;
+}
 
 textarea {
   height: 40vw !important;
@@ -93,13 +80,18 @@ input {
   color: rgb(0,196,85) !important;
   cursor: pointer !important;
   font-size: 3vmin !important;
-  padding: 0.7em 1.5em !important;
+  padding: 1em 1.5em !important;
   text-transform: uppercase !important;
   transition: all 0.25s ease !important;
   text-decoration: none !important;
   font-weight: 700 !important;
   min-height: 50px !important;
   outline: none;
+}
+
+.btn:hover .audio-control-icon,
+.btn:active .audio-control-icon {
+  fill: black;
 }
 
 .btn-non-controls {
@@ -131,11 +123,11 @@ input {
 .favoriteBtnDiv {
   padding: 2vw;
   padding-right: 5vw;
-  /* float:right; */
 }
 
 .favoriteBtn {
   width: 8vw;
+  cursor: pointer;
 }
 
 .cocktailPairingDiv {
@@ -162,6 +154,7 @@ input {
   color: rgba(0,0,0,0.8) !important;
   font-weight: 700 !important;
 }
+
 /** Background **/
 
 .background {
@@ -217,6 +210,10 @@ input {
   font-size: 1.2em;
   margin-bottom: 0.25em;
 }
+.now-playing__device-select select {
+  width: 35vw;
+  cursor: pointer;
+}
 
 .now-playing__status {
   font-size: 1.2em;
@@ -246,6 +243,9 @@ input {
 .progress {
   border: 1px solid #eee;
   height: 6px;
+  width: 35vw;
+  /* margin: 0; */
+  margin-left: 0.5vw;
   border-radius: 3px;
   overflow: hidden;
 }
@@ -253,6 +253,7 @@ input {
 .progress__bar {  
   background-color: rgba(0,0,0,0.8);
   height: 16px;
+  margin: 0;
 }
 
 
@@ -262,13 +263,17 @@ NavbarBrand {
   vertical-align: bottom;
 }
 
-#artistSearch {
+#artist-search {
   min-width: 34vh !important;
   display: inline !important;
 }
 
 .search-form {
   display: inline !important;
+}
+
+#search-submit {
+  width: 100%;
 }
 
 /** Text box styling **/
@@ -333,11 +338,28 @@ h3 {
   color:rgb(0,196,85) !important;
 }
 
+.nav-btn-container {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.navbar {
+  flex-wrap: nowrap !important;
+}
+
 /** Media Queries **/
 
 @media (max-width: 865px) {
   .btn-non-controls {
-    font-size: calc(15px + 1vw) !important;
+    font-size: calc(12px + 0.25vw) !important;
+  }
+
+  #artist-search {
+    min-width: auto !important;
+    display: inline !important;
+    font-size: calc(8px + 0.25vw) !important;
   }
 
   #submit-btn {
@@ -348,9 +370,15 @@ h3 {
   }
   #search-form-group {
     margin-bottom: 0 !important;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    width: 100%;
   }
 
-  #navlink-login-btn {
-    display: none !important;
+  .nav-btn-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
   }
 }

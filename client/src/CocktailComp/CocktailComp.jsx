@@ -1,4 +1,3 @@
-/* eslint-disable jsx-a11y/anchor-is-valid */
 import React, { useEffect, useState } from "react";
 
 // findCocktailImage from ext API call to TheCocktailDB
@@ -29,24 +28,15 @@ const CocktailComp = (props) => {
     }
   }, [imageUrl, props.cocktailId]);
 
-  // const backgroundStyles = {
-  //     backgroundImage:`url(${props.nowPlaying.album.images[0].url})`,
-  //     // width: '45%'
-  // };
-
   return (
     <div className="App">
       <div className="main-wrapper">
         <div className="cocktail__side">
-          {/* <p className="cocktail-name">A Day at the Beach</p> */}
-          <h6 className="cocktail__directions">{props.cocktailDirections}</h6>
+          <h6 className="cocktail__directions">{props.cocktailDirections.replace("GlassServe:", "Suggested Glassware:")}</h6>
         </div>
         <div className="cocktail__img">
           <img src={imageUrl} alt="cocktailImg" />
         </div>
-          {/* <button className="btn" onClick={props.pauseTrack.bind(null)}>PAUSE</button><br/><br/><br/>
-          <button className="btn" onClick={props.playTrack.bind(null)}>PLAY</button><br/><br/><br/> */}
-        {/* <div className="background" style={backgroundStyles} />{" "} */}
       </div>
     </div>
   );

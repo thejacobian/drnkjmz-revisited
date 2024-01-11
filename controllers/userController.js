@@ -1,7 +1,6 @@
 /* eslint-disable prefer-template */
 /* eslint-disable no-underscore-dangle */
 const express = require('express');
-// const bcrypt = require('bcryptjs');
 const fetch = require('node-fetch');
 
 const router = express.Router();
@@ -175,9 +174,6 @@ router.post('/register', showMessagesAndUsername, async (req, res) => {
   try {
     const foundUser = await User.findOne({ sP_id: req.body.sP_id }).populate('cocktails');
     if (!foundUser) {
-      // const { password } = req.body;
-      // const passwordHash = bcrypt.hashSync(password, bcrypt.genSaltSync(10));
-      // userDbEntry.password = passwordHash;
       const dbUser = req.body;
       if (geoData) {
         dbUser.ip = geoData.ip;
@@ -215,17 +211,6 @@ router.post('/register', showMessagesAndUsername, async (req, res) => {
     });
   }
 });
-
-// // helper function for login to show session messages
-// const renderLoginPage = async (req, res) => {
-//   const thisUsersDbId = req.session.userDbId;
-//   // const allCocktails = await Cocktail.find({}).sort([['count', -1]]);
-//   res.render('auth/login.ejs', {
-//     currentUser: thisUsersDbId,
-//     // cocktails: allCocktails,
-//     message: req.session.message,
-//   });
-// };
 
 // LOGIN POST route
 router.post('/login', showMessagesAndUsername, async (req, res) => {
