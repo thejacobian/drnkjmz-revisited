@@ -17,7 +17,7 @@ import NewCocktail from "./NewCocktail/NewCocktail";
 import "./App.css";
 import SpotifyWebApi from "spotify-web-api-js";
 
-require('dotenv').config()
+// require('dotenv').config()
 
 // set up connection to spotifyApi library
 const spotifyApi = new SpotifyWebApi();
@@ -91,48 +91,44 @@ class App extends Component {
   }
   
   playOnDevice = async (newDeviceId) => {
-    await spotifyApi.transferMyPlayback([newDeviceId])
-    .then(async (response) => {
-      await this.setState({
-        deviceId: response.device,
-        response: response,
-      });
-      await this.setDeviceName();
-      await this.getCurrentlyPlaying();
-      await setTimeout(await this.setDeviceName, 200);
-      await setTimeout(await this.getCurrentlyPlaying, 200);
-    }).catch((err) => {
+    try {
+      await spotifyApi.transferMyPlayback([newDeviceId]);
+      // await this.setDeviceName();
+      // await this.getCurrentlyPlaying();
+      setTimeout(this.setDeviceName, 200);
+      setTimeout(this.getCurrentlyPlaying, 200);
+    } catch (err) {
       console.log(`${err} in the spotify playOnDevice ext API lib call`);
-    });
+    }
   }
 
   // Make a call to the spotify ext API from getDeviceIds
-  getDeviceIds = async () => {
-    await spotifyApi.getMyDevices()
-    .then(async (response) => {
-      await this.setState({
+  getDevices = async () => {
+    try {
+      const response = await spotifyApi.getMyDevices();
+      this.setState({
         allDeviceIds: response.devices,
       });
-    }).catch((err) => {
+      return response.devices;
+    } catch (err) {
       console.log(`${err} in the spotify getDeviceIds ext API lib call`);
-    });
+    }
   }
 
   // helper function to set this.state.deviceName
   setDeviceName = async () => {
     // get the user deviceIds
-    await this.getDeviceIds();
-
-    if (this.state.allDeviceIds && !this.state.deviceId) {
-      await this.setState({
-        deviceId: this.state.allDeviceIds[0].id,
+    const allDevices = await this.getDevices();
+    let locDevice = allDevices?.filter(aDevice => aDevice.id === this.state.deviceId);
+    if (!locDevice?.length && allDevices?.length) {
+      locDevice = [allDevices[0]];
+    }
+    if (locDevice?.length) {
+      this.setState ({
+        deviceId: locDevice[0].id,
+        deviceName: locDevice[0].name
       });
     }
-
-    let locDevice = await this.state.allDeviceIds.filter((aDevice) => aDevice.id === this.state.deviceId)
-    await this.setState ({
-      deviceName: locDevice[0].name
-    });
   }
 
   // Once react page is loaded/mounted after redirect from spotify login,
@@ -144,12 +140,12 @@ class App extends Component {
     // Set token in state if truthy/exists
     if (_token) {
       // save token in state
-      await this.setState({
+      this.setState({
         token: _token
       });
 
       // set spotifyApi to our access token to be able to make requests
-      await spotifyApi.setAccessToken(_token);
+      spotifyApi.setAccessToken(_token);
 
       // get the user private data for new User creation in backend
       await this.getMe();
@@ -175,7 +171,7 @@ class App extends Component {
         // get initial cocktail for currentlyPlaying artist on page load.
         await this.handleSubmit(null, this.state.nowPlaying.artists[0].name);
 
-        await this.setState({
+        this.setState({
           isPlaying: true,
         })
       }
@@ -222,7 +218,7 @@ class App extends Component {
     }
 
     if(parsedResponse.status === 200){
-      await this.setState({
+      this.setState({
           isLoading: false,
           cocktail: parsedResponse,
           artist: ""
@@ -243,7 +239,7 @@ class App extends Component {
     }
 
     await this.getCurrentlyPlaying();
-    await setTimeout(await this.getCurrentlyPlaying, 200);
+    setTimeout(this.getCurrentlyPlaying, 200);
 
     await this.getNewCocktail(formArtist);
   }
@@ -267,8 +263,8 @@ class App extends Component {
       });
 
       //wait 3 seconds before allowing another sync API call
-      await setTimeout(
-        await this.setState({
+      setTimeout(
+        this.setState({
           justSynced: false
         })
       , 3000);
@@ -276,7 +272,7 @@ class App extends Component {
   }
 
   setTrackProgress = async () => {
-    await this.setState({
+    this.setState({
       progress_ms: this.state.progress_ms + 500
     });
 
@@ -293,10 +289,11 @@ class App extends Component {
     await spotifyApi.getMyCurrentPlaybackState()
       .then(async (response) => {
         if (response.item.artists) {
-          await this.setState({
+          this.setState({
             response: response,
             nowPlaying: response.item,
             deviceId: response.device.id,
+            deviceName: response.device.name,
             isPlaying: response.is_playing,
             progress_ms: response.progress_ms, 
           });
@@ -305,8 +302,8 @@ class App extends Component {
         clearInterval(this.state.syncTimer);
           // start interval time to update the progress_bar in PlayerComp if track isPlaying
           if (this.state.isPlaying) {
-            await this.setState({
-              syncTimer: setInterval(await this.setTrackProgress, 500)
+            this.setState({
+              syncTimer: setInterval(this.setTrackProgress, 500)
             })
           } else {
             clearInterval(this.state.syncTimer);
@@ -321,7 +318,7 @@ class App extends Component {
   searchArtists = async (searchTerm) => {
     await spotifyApi.searchArtists(searchTerm)
       .then(async (response) => {
-        await this.setState({
+        this.setState({
           artistResults: response.artists.items,
           response: response
         });
@@ -335,7 +332,7 @@ class App extends Component {
   getArtistDetails = async (artistId) => {
     await spotifyApi.getArtist(artistId)
       .then(async (response) => {
-        await this.setState({
+        this.setState({
           artistDetails: response.artist,
           response: response
         });
@@ -349,7 +346,7 @@ class App extends Component {
   getTrackFeatures = async () => {
     await spotifyApi.getAudioFeaturesForTrack(this.state.nowPlaying.id)
       .then(async (response) => {
-        await this.setState({
+        this.setState({
           trackFeatures: response.track,
           response: response
         });
@@ -363,12 +360,12 @@ class App extends Component {
   previousTrack = async () => {
     await spotifyApi.skipToPrevious()
       .then(async (response) => {
-        await this.setState({
+        this.setState({
           response: response,
         });
         // update setDeviceName for PlayerComp to current nowPlaying device
         await this.setDeviceName();
-        await setTimeout(await this.getCurrentlyPlaying, 200);
+        setTimeout(this.getCurrentlyPlaying, 200);
       }).finally((err) => {
         console.log(`${err} in the spotify previousTrack ext API lib call`);
       }).catch((err) => {
@@ -381,12 +378,12 @@ class App extends Component {
    nextTrack = async () => {
     await spotifyApi.skipToNext()
       .then(async (response) => {
-        await this.setState({
+        this.setState({
           response: response,
         });
         // update setDeviceName for PlayerComp to current nowPlaying device
         await this.setDeviceName();
-        await setTimeout(await this.getCurrentlyPlaying, 200);
+        setTimeout(this.getCurrentlyPlaying, 200);
       }).catch((err) => {
         console.log(`${err} in the spotify nextTrack ext API lib call`);
       }
@@ -397,7 +394,7 @@ class App extends Component {
   pauseTrack = async () => {
     await spotifyApi.pause()
       .then(async (response) => {
-        await this.setState({
+        this.setState({
           response: response,
           isPlaying: false,
         });
@@ -426,7 +423,7 @@ class App extends Component {
     if (uri === "" && this.state.nowPlaying.artists[0].name) {
       await spotifyApi.play({"device_id": this.state.deviceId})
         .then(async (response) => {
-          await this.setState({
+          this.setState({
             isPlaying: true,
             response: response,
           });
@@ -436,7 +433,7 @@ class App extends Component {
     } else if (uri !== "" && this.state.artistResults[0]) {
       await spotifyApi.play({"device_id": this.state.deviceId, "context_uri": uri})
       .then(async (response) => {
-        await this.setState({
+        this.setState({
           isPlaying: true,
           response: response,
         });
@@ -446,7 +443,7 @@ class App extends Component {
     } else {
       await spotifyApi.play({"device_id": this.state.deviceId, "context_uri": "spotify:album:2aEfwug3iZ4bivziB14C1F"})
         .then(async (response) => {
-          await this.setState({
+          this.setState({
             isPlaying: true,
             response: response,
           });
@@ -458,7 +455,7 @@ class App extends Component {
 
     // sync with Spotify and getCurrentlyPlaying state
     await this.getCurrentlyPlaying();
-    await setTimeout(await this.getCurrentlyPlaying, 200);
+    setTimeout(this.getCurrentlyPlaying, 200);
   }
 
   // Make a call to the spotify ext API from getDeviceIds
@@ -466,7 +463,7 @@ class App extends Component {
     await spotifyApi.getMe()
     .then(async (response) => {
       // console.log(response, "sPUser")
-      await this.setState({
+      this.setState({
         sPUser: response,
       });
     }).catch((err) => {
@@ -492,7 +489,7 @@ class App extends Component {
     const parsedResponse = await newCocktail.json();
     if(parsedResponse.status === 200){
       // console.log(`Cocktail with _id:${parsedResponse.data._id} was created`);
-      await this.setState({
+      this.setState({
           newCocktail: parsedResponse.data
       }, ()=>{
           this.state.history.push("/cocktails")
@@ -514,7 +511,7 @@ class App extends Component {
     const parsedResponse = await updatedCocktail.json();
     if(parsedResponse.status === 200){
       //console.log(`Cocktail with _id:${parsedResponse.data._id} was updated`);
-        await this.setState({
+        this.setState({
             updatedCocktail: parsedResponse.data
         }, ()=>{
             this.state.history.push("/cocktails")
@@ -563,7 +560,7 @@ class App extends Component {
       const parsedResponse = await createdUser.json();
       if(parsedResponse.status === 200){
         // console.log(`User with _id:${parsedResponse.data._id} was created`);
-        await this.setState({
+        this.setState({
             newUser: parsedResponse.data,
             curUser: parsedResponse.data
         }, ()=>{
@@ -593,7 +590,7 @@ class App extends Component {
         const parsedResponse = await loginUser.json();
         if(parsedResponse.status === 200){
           // console.log(`User with _id:${parsedResponse.data._id} was logged in`);
-          await this.setState({
+          this.setState({
             curUser: parsedResponse.data
           }, ()=>{
             this.state.history.push("/users")
@@ -624,7 +621,7 @@ class App extends Component {
       const parsedResponse = await updatedUser.json();
       if(parsedResponse.status === 200){
         //console.log(`User with _id:${parsedResponse.data._id} was updated`);
-          await this.setState({
+          this.setState({
               updatedUser: parsedResponse.data
           }, ()=>{
               this.state.history.push("/users")
@@ -643,8 +640,8 @@ class App extends Component {
   updateUserCocktails =  async (e, argCocktail) => {
     try {
       // const cocktailIndex = this.cocktailIndexOf(this.state.curUser.cocktails, argCocktail);
-      if(this.state.curUser.cocktails.filter((cocktail) => cocktail._id === argCocktail._id).length > 0) {
-        this.state.curUser.cocktails = this.state.curUser.cocktails.filter((cocktail) => cocktail._id !== argCocktail._id);
+      if (this.state.curUser.cocktails.filter(cocktail => cocktail._id === argCocktail._id).length > 0) {
+        this.state.curUser.cocktails = this.state.curUser.cocktails.filter(cocktail => cocktail._id !== argCocktail._id);
         e.target.setAttribute("src", "/images/GreyWhiteStar.png");
       } else {
         e.target.setAttribute("src", "/images/GreenWhiteStar.png");
@@ -660,10 +657,10 @@ class App extends Component {
         }
       })
       const parsedResponse = await updatedUser.json();
-      if(parsedResponse.status === 200){
+      if (parsedResponse.status === 200) {
         //console.log(`User with _id:${parsedResponse.data._id} was modified to add/remove cocktail _id: ${this.state.cocktail.data._id}`);
           // await this.updateCocktail(argCocktail);
-          await this.setState({
+          this.setState({
               updatedUser: parsedResponse.data,
               curUser: parsedResponse.data
           }, ()=>{
@@ -712,7 +709,7 @@ class App extends Component {
                 <Button id="submit-btn" className="btn-non-controls btn-sm" type="submit">SUBMIT</Button>
               </FormGroup>
             </Form>}
-            <Nav style={{ maxWidth: '95%', margin: this.state.token ? 'auto' : 0, marginLeft: 'auto' }} navbar>
+            <Nav style={{ maxWidth: '95%', margin: this.state.token ? 'auto' : '0 0 0 auto' }} navbar>
               <NavItem>
                 <NavLink id="navlink-login-btn" className="btn-non-controls btn-sm"
                   href={`${sPAuthEndpoint}?client_id=${sPClientId}&redirect_uri=${sPRedirectUri}&scope=${sPScopes.join("%20")}&response_type=token&show_dialog=true`}
@@ -748,6 +745,7 @@ class App extends Component {
                 pauseTrack={this.pauseTrack}
                 playTrack={this.playTrack}
                 currDeviceName={this.state.deviceName}
+                currDeviceId={this.state.deviceId}
                 devices={this.state.allDeviceIds}
                 playOnDevice={this.playOnDevice}
               />

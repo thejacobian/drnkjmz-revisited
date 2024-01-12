@@ -12,8 +12,8 @@ class PlayerComp extends Component{
   handleChange = (e) => {
     e.preventDefault();
     this.setState({
-      [e.target.name]: e.target.value
-    }, ()=>{
+      deviceId: e.target.value
+    }, () => {
       this.props.playOnDevice(this.state.deviceId);
     })
   }
@@ -40,10 +40,10 @@ class PlayerComp extends Component{
             </div>
             <div className="now-playing__device-select">
               Select a playback device:
-              <select onChange={this.handleChange} name="deviceId">
+              <select onChange={this.handleChange} name="deviceId" defaultValue={this.props.currDeviceId}>
                 {this.props.devices.map((device, index) => {
                   return(
-                    <option key={index} value={device.id}>{device.name}</option>
+                    <option key={index} value={device.id} selected={device.id === this.props.currDeviceId ? true : null}>{device.name} </option>
                   )}
                 )}
               </select>
