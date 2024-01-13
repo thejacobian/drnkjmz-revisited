@@ -639,37 +639,39 @@ class App extends Component {
   // favorites or un-favorites a cocktail for a particular user in state/DB
   updateUserCocktails =  async (e, argCocktail) => {
     try {
+      let newCocktailsArr;
       // const cocktailIndex = this.cocktailIndexOf(this.state.curUser.cocktails, argCocktail);
       if (this.state.curUser.cocktails.filter(cocktail => cocktail._id === argCocktail._id).length > 0) {
-        this.state.curUser.cocktails = this.state.curUser.cocktails.filter(cocktail => cocktail._id !== argCocktail._id);
+        newCocktailsArr = this.state.curUser.cocktails.filter(cocktail => cocktail._id !== argCocktail._id);
         e.target.setAttribute("src", "/images/GreyWhiteStar.png");
       } else {
         e.target.setAttribute("src", "/images/GreenWhiteStar.png");
-        this.state.curUser.cocktails = [...this.state.curUser.cocktails, argCocktail];
+        newCocktailsArr = [...this.state.curUser.cocktails, argCocktail];
       }
 
-      const updatedUser = await fetch(`${process.env.REACT_APP_BACKEND_ADDRESS}/api/v1/users/${this.state.curUser._id}`, {
-        credentials: 'include',
-        method: "PUT",
-        body: JSON.stringify(this.state.curUser),
-        headers: {
-            "Content-Type": 'application/json'
+      if (newCocktailsArr?.length) {
+        const updatedUser = await fetch(`${process.env.REACT_APP_BACKEND_ADDRESS}/api/v1/users/${this.state.curUser._id}`, {
+          credentials: 'include',
+          method: "PUT",
+          body: JSON.stringify({ ...this.state.curUser, cocktails: newCocktailsArr }),
+          headers: {
+              "Content-Type": 'application/json'
+          }
+        })
+        const parsedResponse = await updatedUser.json();
+        if (parsedResponse.status === 200) {
+            //console.log(`User with _id:${parsedResponse.data._id} was modified to add/remove cocktail _id: ${this.state.cocktail.data._id}`);
+            this.setState({
+                updatedUser: parsedResponse.data,
+                curUser: parsedResponse.data
+            }, ()=>{
+                this.state.history.push("/users")
+            })
+            return parsedResponse.data;
+        } else {
+          console.log('The User cocktail update was unsuccessful');
+          return null;
         }
-      })
-      const parsedResponse = await updatedUser.json();
-      if (parsedResponse.status === 200) {
-        //console.log(`User with _id:${parsedResponse.data._id} was modified to add/remove cocktail _id: ${this.state.cocktail.data._id}`);
-          // await this.updateCocktail(argCocktail);
-          this.setState({
-              updatedUser: parsedResponse.data,
-              curUser: parsedResponse.data
-          }, ()=>{
-              this.state.history.push("/users")
-          })
-          return parsedResponse.data;
-      } else {
-        console.log('The User cocktail update was unsuccessful');
-        return null;
       }
     } catch (err) {
       console.log(err);
