@@ -12,7 +12,7 @@ require('dotenv').config();
 
 // set up cors
 app.use(cors({
-  origin: process.env.FRONTEND_ADDRESS,
+  origin: process.env.FRONTEND_ADDRESS || 'http://localhost:3000',
   credentials: true,
   optionsSuccessStatus: 200,
 }));
@@ -27,12 +27,23 @@ require('./db/db');
 app.use(bodyParser.json());
 
 // set up express-session
+const MongoStore = require('connect-mongo')(session);
+const mongoose = require('mongoose');
+
 app.use(session({
-  saveUninitialized: true,
-  secret: process.env.SECRET,
+  saveUninitialized: false,
   resave: false,
+  secret: process.env.SECRET,
+  store: new MongoStore({
+    mongooseConnection: mongoose.connection,
+    collection: 'sessions',
+    ttl: 7 * 24 * 60 * 60, // 7 days
+  }),
   cookie: {
     maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+    secure: process.env.NODE_ENV === 'production', // Only set secure in prod
+    httpOnly: true,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   },
 }));
 
