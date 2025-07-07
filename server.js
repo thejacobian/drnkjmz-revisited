@@ -15,6 +15,13 @@ app.use(cors({
   origin: process.env.FRONTEND_ADDRESS || 'http://localhost:3000',
   credentials: true,
   optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+}));
+
+app.use(cors({
+  origin: "https://drnkjmz.up.railway.app",
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
 }));
 
 // Use 'path' for Big Repo deployment
